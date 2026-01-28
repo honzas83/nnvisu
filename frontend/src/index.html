@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Neural Network Training Viz</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="app">
+        <header>
+            <h1>Neural Network Training Viz</h1>
+            <div id="controls">
+                <div class="control-group">
+                    <label>Class:</label>
+                    <button id="btn-class-0" class="class-btn active" data-class="0">Class 0 (Blue)</button>
+                    <button id="btn-class-1" class="class-btn" data-class="1">Class 1 (Orange)</button>
+                </div>
+                <div class="control-group">
+                    <button id="btn-clear">Clear Points</button>
+                </div>
+                <div class="control-group">
+                    <button id="btn-start" style="background: #2ecc71; color: white; border-color: #27ae60;">Start Training</button>
+                    <button id="btn-stop" style="background: #e74c3c; color: white; border-color: #c0392b;" disabled>Stop</button>
+                    <button id="btn-reset" style="background: #95a5a6; color: white; border-color: #7f8c8d;">Reset Model</button>
+                </div>
+            </div>
+        </header>
+        <main>
+            <canvas id="viz-canvas" width="800" height="800"></canvas>
+        </main>
+        <footer>
+            <div id="status">Status: Idle</div>
+            <div id="metrics">Epoch: 0 | Loss: N/A</div>
+        </footer>
+    </div>
+    <script type="module" src="main.js"></script>
+</body>
+</html>
