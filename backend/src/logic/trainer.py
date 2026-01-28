@@ -13,10 +13,25 @@ class Trainer:
         self.criterion = nn.CrossEntropyLoss()
 
     def initialize_model(self, learning_rate: float = 0.01) -> None:
-        if self.state.model is None:
-            self.state.model = NeuralNetwork()
+        # Determine output dimension based on data
+        num_classes = 2
+        if self.state.points:
+            max_label = max(p.label for p in self.state.points)
+            num_classes = max(2, max_label + 1)
+        
+        # If model exists but output dim mismatches, or model doesn't exist, re-init
+        if self.state.model is None or self.state.output_dim != num_classes:
+            self.state.output_dim = num_classes
+            self.state.model = NeuralNetwork(
+                hidden_layers=self.state.hidden_layers,
+                output_dim=self.state.output_dim
+            )
+            # New optimizer for new parameters
             self.state.optimizer = optim.Adam(self.state.model.parameters(), lr=learning_rate)
             self.state.epoch = 0
+        elif self.state.optimizer is None:
+             # Just ensure optimizer exists if model was kept
+             self.state.optimizer = optim.Adam(self.state.model.parameters(), lr=learning_rate)
 
     def step(self) -> float:
         if not self.state.points or self.state.model is None:

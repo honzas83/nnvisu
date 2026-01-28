@@ -17,17 +17,20 @@ class TrainingExample:
         return TrainingExample(id=str(uuid.uuid4()), x=x, y=y, label=label)
 
 class NeuralNetwork(nn.Module):
-    def __init__(self, hidden_layers: list[int] | None = None):
+    def __init__(self, hidden_layers: list[int] | None = None, output_dim: int = 2):
         super().__init__()
         if hidden_layers is None:
             hidden_layers = [10, 5]
-        layers = []
+        
+        layers: list[nn.Module] = []
         input_dim = 2
+        
         for h in hidden_layers:
             layers.append(nn.Linear(input_dim, h))
             layers.append(nn.Tanh())
             input_dim = h
-        layers.append(nn.Linear(input_dim, 2)) # Output 2 classes (logits)
+            
+        layers.append(nn.Linear(input_dim, output_dim)) # Output classes (logits)
         self.net = nn.Sequential(*layers)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
@@ -41,6 +44,8 @@ class TrainingState:
     is_training: bool = False
     epoch: int = 0
     loss: float = 0.0
+    hidden_layers: list[int] | None = None # None means use default [10, 5]
+    output_dim: int = 2
 
     def add_point(self, x: float, y: float, label: int) -> TrainingExample:
         point = TrainingExample.create(x, y, label)

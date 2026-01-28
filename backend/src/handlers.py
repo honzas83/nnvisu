@@ -93,6 +93,24 @@ class NeuralWebSocket(tornado.websocket.WebSocketHandler):
             self.state.optimizer = None
             self.state.epoch = 0
             self.state.loss = 0.0
+            
+            # Update architecture config if provided
+            if "hidden_layers" in payload:
+                layers = payload["hidden_layers"]
+                if not isinstance(layers, list):
+                    print("Invalid hidden_layers format")
+                elif len(layers) > 10:
+                     print("Too many layers (max 10)")
+                     # Could send error message to client, but for now just ignore or truncate
+                     # Ignoring to prevent crash
+                elif any(x > 100 for x in layers):
+                     print("Too many neurons (max 100)")
+                     # Ignoring
+                elif any(x <= 0 for x in layers):
+                    print("Invalid neuron count")
+                else:
+                    self.state.hidden_layers = layers
+                
             # Broadcast status reset
             self.broadcast(json.dumps({
                 "type": protocol.MSG_TRAINING_STATUS,

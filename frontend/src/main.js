@@ -25,6 +25,7 @@ let mapData = null;
 // UI Handlers
 document.getElementById('btn-class-0').onclick = () => setClass(0);
 document.getElementById('btn-class-1').onclick = () => setClass(1);
+document.getElementById('btn-class-2').onclick = () => setClass(2);
 document.getElementById('btn-clear').onclick = () => {
     if (ws && ws.readyState === WebSocket.OPEN) {
         ws.send(JSON.stringify({ type: 'CLEAR_POINTS' }));
@@ -42,14 +43,48 @@ document.getElementById('btn-stop').onclick = () => {
         ws.send(JSON.stringify({ type: 'STOP_TRAINING' }));
     }
 };
-document.getElementById('btn-reset').onclick = () => {
+
+const archInput = document.getElementById('arch-input');
+
+function getArchitecture() {
+    const val = archInput.value.trim();
+    // Validate: "10-5", "10", etc. Only numbers and hyphens.
+    if (!/^\d+(-\d+)*$/.test(val)) {
+        alert("Invalid format! Use numbers separated by hyphens (e.g. 10-5).");
+        return null;
+    }
+    return val.split('-').map(Number);
+}
+
+function resetModel() {
+    const hiddenLayers = getArchitecture();
+    if (!hiddenLayers) return;
+
     if (ws && ws.readyState === WebSocket.OPEN) {
-        ws.send(JSON.stringify({ type: 'RESET_MODEL' }));
+        ws.send(JSON.stringify({ 
+            type: 'RESET_MODEL',
+            payload: { hidden_layers: hiddenLayers }
+        }));
     }
     mapData = null;
     statusDiv.textContent = 'Status: Model Reset';
     metricsDiv.textContent = 'Epoch: 0 | Loss: 0.0000';
-};
+}
+
+document.getElementById('btn-reset').onclick = resetModel;
+
+archInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+        resetModel();
+        archInput.blur();
+    }
+});
+archInput.addEventListener('blur', () => {
+   // Optional: Auto-reset on blur might be annoying if accidental. 
+   // Spec says: "Enter key press or when the input field loses focus (blur)"
+   // Let's implement it as requested.
+   resetModel();
+});
 
 canvas.addEventListener('mousedown', (e) => {
     const rect = canvas.getBoundingClientRect();
@@ -122,9 +157,11 @@ function handleMessage(message) {
             const cls = bytes[i];
             const offset = i * 4;
             if (cls === 0) {
-                imgData.data[offset] = 52; imgData.data[offset+1] = 152; imgData.data[offset+2] = 219; imgData.data[offset+3] = 100;
+                imgData.data[offset] = 52; imgData.data[offset+1] = 152; imgData.data[offset+2] = 219; imgData.data[offset+3] = 100; // Blue
+            } else if (cls === 1) {
+                imgData.data[offset] = 230; imgData.data[offset+1] = 126; imgData.data[offset+2] = 34; imgData.data[offset+3] = 100; // Orange
             } else {
-                imgData.data[offset] = 230; imgData.data[offset+1] = 126; imgData.data[offset+2] = 34; imgData.data[offset+3] = 100;
+                imgData.data[offset] = 231; imgData.data[offset+1] = 76; imgData.data[offset+2] = 60; imgData.data[offset+3] = 100; // Red
             }
         }
         mapCtx.putImageData(imgData, 0, 0);
@@ -155,7 +192,9 @@ function render() {
 
         ctx.beginPath();
         ctx.arc(screenX, screenY, 5, 0, 2 * Math.PI);
-        ctx.fillStyle = p.label === 0 ? '#3498db' : '#e67e22';
+        if (p.label === 0) ctx.fillStyle = '#3498db';
+        else if (p.label === 1) ctx.fillStyle = '#e67e22';
+        else ctx.fillStyle = '#e74c3c';
         ctx.fill();
         ctx.strokeStyle = '#fff';
         ctx.stroke();
