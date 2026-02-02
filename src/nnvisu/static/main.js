@@ -146,7 +146,15 @@ function handleMessage(message) {
             runTrainingLoop();
         }
     } else if (message.type === 'map_update') {
-        const { width, height, data } = message.payload;
+        const { width, height, format, data } = message.payload;
+        
+        if (mapCanvas.width !== width || mapCanvas.height !== height) {
+            mapCanvas.width = width;
+            mapCanvas.height = height;
+            // Context needs to be re-acquired or just used, 2D context persists on resize usually but better to be safe if we were recreating
+            mapCtx = mapCanvas.getContext('2d');
+        }
+
         const binaryString = atob(data);
         const len = binaryString.length;
         const bytes = new Uint8Array(len);
@@ -155,15 +163,27 @@ function handleMessage(message) {
         }
         
         const imgData = mapCtx.createImageData(width, height);
-        for (let i = 0; i < len; i++) {
-            const cls = bytes[i];
-            const offset = i * 4;
-            if (cls === 0) {
-                imgData.data[offset] = 52; imgData.data[offset+1] = 152; imgData.data[offset+2] = 219; imgData.data[offset+3] = 100;
-            } else if (cls === 1) {
-                imgData.data[offset] = 230; imgData.data[offset+1] = 126; imgData.data[offset+2] = 34; imgData.data[offset+3] = 100;
-            } else {
-                imgData.data[offset] = 231; imgData.data[offset+1] = 76; imgData.data[offset+2] = 60; imgData.data[offset+3] = 100;
+        if (format === 'rgb') {
+            for (let i = 0; i < len / 3; i++) {
+                const pixelIdx = i * 3;
+                const offset = i * 4;
+                imgData.data[offset] = bytes[pixelIdx];     // R
+                imgData.data[offset+1] = bytes[pixelIdx+1]; // G
+                imgData.data[offset+2] = bytes[pixelIdx+2]; // B
+                imgData.data[offset+3] = 100;               // A (keeping same alpha as before)
+            }
+        } else {
+            // Legacy/Fallback: Class IDs
+            for (let i = 0; i < len; i++) {
+                const cls = bytes[i];
+                const offset = i * 4;
+                if (cls === 0) {
+                    imgData.data[offset] = 52; imgData.data[offset+1] = 152; imgData.data[offset+2] = 219; imgData.data[offset+3] = 100;
+                } else if (cls === 1) {
+                    imgData.data[offset] = 230; imgData.data[offset+1] = 126; imgData.data[offset+2] = 34; imgData.data[offset+3] = 100;
+                } else {
+                    imgData.data[offset] = 231; imgData.data[offset+1] = 76; imgData.data[offset+2] = 60; imgData.data[offset+3] = 100;
+                }
             }
         }
         mapCtx.putImageData(imgData, 0, 0);

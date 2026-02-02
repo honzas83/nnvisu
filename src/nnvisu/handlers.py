@@ -123,8 +123,9 @@ class NeuralWebSocket(tornado.websocket.WebSocketHandler): # type: ignore
         self.write_message(json.dumps({
             "type": "map_update",
             "payload": {
-                "width": 50,
-                "height": 50,
+                "width": StatelessTrainer.GRID_WIDTH,
+                "height": StatelessTrainer.GRID_HEIGHT,
+                "format": "rgb",
                 "data": map_b64
             }
         }))
