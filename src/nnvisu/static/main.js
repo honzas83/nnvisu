@@ -56,7 +56,87 @@ if (config.architecture) {
     archInput.value = config.architecture.join('-');
 }
 
+const activationSelect = document.getElementById('activation-select');
+activationSelect.value = config.activation || 'tanh';
+
+const optimizerSelect = document.getElementById('optimizer-select');
+optimizerSelect.value = config.optimizer || 'adam';
+
+const lrInput = document.getElementById('lr-input');
+lrInput.value = config.learningRate;
+
+const regInput = document.getElementById('reg-input');
+regInput.value = config.regularization || 0;
+
+const batchInput = document.getElementById('batch-input');
+batchInput.value = config.batchSize || 0;
+
+const dropoutInput = document.getElementById('dropout-input');
+dropoutInput.value = config.dropout || 0;
+
+const advancedOptions = document.getElementById('advanced-options');
+// Restore expanded state
+const isExpanded = localStorage.getItem('nnvisu_advanced_expanded') === 'true';
+if (isExpanded) {
+    advancedOptions.open = true;
+}
+
+// Persist expanded state
+advancedOptions.addEventListener('toggle', () => {
+    localStorage.setItem('nnvisu_advanced_expanded', advancedOptions.open);
+});
+
+function resetAdvancedToDefaults() {
+    // Original defaults before Advanced introduction
+    config.activation = 'tanh';
+    config.optimizer = 'adam';
+    config.learningRate = 0.01;
+    config.regularization = 0;
+    config.batchSize = 0;
+    config.dropout = 0;
+    
+    // Update UI
+    activationSelect.value = config.activation;
+    optimizerSelect.value = config.optimizer;
+    lrInput.value = config.learningRate;
+    regInput.value = config.regularization;
+    batchInput.value = config.batchSize;
+    dropoutInput.value = config.dropout;
+    
+    stateManager.saveConfig(config);
+    resetModel(); // Reset weights when returning to base configuration
+}
+
+document.getElementById('btn-reset-advanced-main').onclick = resetAdvancedToDefaults;
+document.getElementById('btn-reset-advanced-panel').onclick = resetAdvancedToDefaults;
+
 // UI Handlers
+function updateConfig() {
+    config.activation = activationSelect.value;
+    config.optimizer = optimizerSelect.value;
+    config.learningRate = parseFloat(lrInput.value) || 0.01;
+    config.regularization = parseFloat(regInput.value) || 0;
+    config.batchSize = parseInt(batchInput.value) || 0;
+    config.dropout = parseFloat(dropoutInput.value) || 0;
+    stateManager.saveConfig(config);
+    
+    // If not training, we might want to trigger a single step to show effects 
+    // especially for regularization or dropout changes.
+    if (!isTraining) {
+        runTrainingLoop();
+    }
+}
+
+[activationSelect, optimizerSelect, lrInput, regInput, batchInput, dropoutInput].forEach(el => {
+    el.addEventListener('change', () => {
+        if (el === activationSelect) {
+            resetModel();
+        } else {
+            updateConfig();
+        }
+    });
+});
+
 function initPalette() {
     const palette = document.getElementById('palette');
     CLASS_COLORS.forEach((color, idx) => {

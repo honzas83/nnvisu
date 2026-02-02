@@ -27,7 +27,7 @@ class StatelessTrainer:
     def __init__(self) -> None:
         self.criterion = nn.CrossEntropyLoss()
 
-    def train_step(self, model: NeuralNetwork, data: List[DataPoint], learning_rate: float) -> float:
+    def train_step(self, model: NeuralNetwork, data: List[DataPoint], config: dict) -> float:
         """
         Perform a single training step.
         Note: Optimizer state is not preserved between steps in this stateless design.
@@ -35,13 +35,33 @@ class StatelessTrainer:
         if not data:
             return 0.0
 
-        # Prepare batch
-        X = torch.tensor([[p['x'], p['y']] for p in data], dtype=torch.float32)  # noqa: N806
-        y = torch.tensor([p['label'] for p in data], dtype=torch.long)
+        # Hyperparameters from config
+        learning_rate = config.get("learningRate", 0.01)
+        optimizer_name = config.get("optimizer", "adam").lower()
+        regularization = config.get("regularization", 0.0)
+        batch_size = config.get("batchSize", 0)
+
+        # Batch sampling
+        if batch_size > 0 and batch_size < len(data):
+            indices = np.random.choice(len(data), batch_size, replace=False)
+            batch = [data[i] for i in indices]
+        else:
+            batch = data
+
+        # Prepare batch tensors
+        X = torch.tensor([[p['x'], p['y']] for p in batch], dtype=torch.float32)  # noqa: N806
+        y = torch.tensor([p['label'] for p in batch], dtype=torch.long)
 
         # Re-initialize optimizer (stateless)
-        optimizer = optim.Adam(model.parameters(), lr=learning_rate)
+        opt_class = {
+            'sgd': optim.SGD,
+            'adam': optim.Adam,
+            'rmsprop': optim.RMSprop
+        }.get(optimizer_name, optim.Adam)
 
+        optimizer = opt_class(model.parameters(), lr=learning_rate, weight_decay=regularization)
+
+        model.train() # Set to train mode for dropout
         optimizer.zero_grad()
         outputs = model(X)
         loss = self.criterion(outputs, y)
@@ -52,6 +72,7 @@ class StatelessTrainer:
 
     def generate_map(self, model: NeuralNetwork, width: int = GRID_WIDTH, height: int = GRID_HEIGHT) -> str:
         """Generate classification map as base64 string (RGB bytes)."""
+        model.eval() # Set to eval mode to disable dropout
         # Create grid
         # x: -1 to 1, y: -1 to 1
         x = np.linspace(-1, 1, width)

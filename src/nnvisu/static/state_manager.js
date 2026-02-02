@@ -9,7 +9,15 @@ export class StateManager {
 
     loadState() {
         return {
-            config: this._load(this.STORAGE_KEYS.CONFIG, { learningRate: 0.01, architecture: [10, 5], activation: 'tanh' }),
+            config: this._load(this.STORAGE_KEYS.CONFIG, { 
+                learningRate: 0.01, 
+                architecture: [10, 5], 
+                activation: 'tanh',
+                optimizer: 'adam',
+                regularization: 0,
+                batchSize: 0,
+                dropout: 0
+            }),
             weights: this._load(this.STORAGE_KEYS.WEIGHTS, null),
             data: this._load(this.STORAGE_KEYS.DATA, [])
         };

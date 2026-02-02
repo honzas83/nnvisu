@@ -1,4 +1,3 @@
-import torch
 from nnvisu.logic.model import NeuralNetwork
 
 def test_adapt_output_layer_add():

@@ -1,7 +1,4 @@
 import base64
-import numpy as np
-import pytest
-import torch
 from nnvisu.logic.trainer import StatelessTrainer
 from nnvisu.logic.model import NeuralNetwork
 

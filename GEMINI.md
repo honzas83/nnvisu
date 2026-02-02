@@ -10,6 +10,8 @@ Auto-generated from all feature plans. Last updated: 2026-01-28
 - `localStorage` (Configuration/Data), In-memory (Training History) (005-gui-dynamic-classes)
 - Python 3.11+, JavaScript (ES6) + Tornado, PyTorch, Browser Canvas API (006-usability-layout-refactor)
 - N/A (UI Refactor) (006-usability-layout-refactor)
+- Python 3.11+, JavaScript (ES6) + Tornado (WebSockets), PyTorch (NN Core), NumPy (007-advanced-training-settings)
+- N/A (In-memory), LocalStorage for frontend settings (007-advanced-training-settings)
 
 - Python 3.11+ + Tornado (Web server/Websockets), NumPy (Data processing), PyTorch (Neural Network training - *Tentative, pending research*) (001-nn-training-viz)
 
@@ -29,9 +31,9 @@ cd src [ONLY COMMANDS FOR ACTIVE TECHNOLOGIES][ONLY COMMANDS FOR ACTIVE TECHNOLO
 Python 3.11+: Follow standard conventions
 
 ## Recent Changes
+- 007-advanced-training-settings: Added Python 3.11+, JavaScript (ES6) + Tornado (WebSockets), PyTorch (NN Core), NumPy
 - 006-usability-layout-refactor: Added Python 3.11+, JavaScript (ES6) + Tornado, PyTorch, Browser Canvas API
 - 005-gui-dynamic-classes: Added Python 3.11+, JavaScript (ES6) + Tornado (Backend), PyTorch (Inference/Training), Browser Canvas API (Frontend)
-- 004-dense-probabilistic-grid: Added Python 3.11+ + Tornado (WebSockets), PyTorch (Inference), NumPy (Matrix Ops)
 
 
 <!-- MANUAL ADDITIONS START -->

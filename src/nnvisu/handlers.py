@@ -1,6 +1,5 @@
 import json
 from typing import Any, Dict, cast
-import torch
 
 import tornado.websocket
 
@@ -48,9 +47,10 @@ class NeuralWebSocket(tornado.websocket.WebSocketHandler): # type: ignore
 
         # Reconstruct Model
         architecture = config.get("architecture", [10, 5])
+        activation = config.get("activation", "tanh")
+        dropout = config.get("dropout", 0.0)
         
         incoming_weights = cast(Dict[str, Any], model_state).get("weights", [])
-        incoming_biases = cast(Dict[str, Any], model_state).get("biases", [])
         
         # Detect old output dim from last layer weights if available
         old_output_dim = 2
@@ -58,7 +58,12 @@ class NeuralWebSocket(tornado.websocket.WebSocketHandler): # type: ignore
             old_output_dim = len(incoming_weights[-1])
             
         # Initialize model with OLD dimensions first to load weights correctly
-        model = NeuralNetwork(hidden_layers=architecture, output_dim=old_output_dim)
+        model = NeuralNetwork(
+            hidden_layers=architecture, 
+            output_dim=old_output_dim,
+            activation=activation,
+            dropout=dropout
+        )
         model.load_state_dict_from_list(cast(Dict[str, Any], model_state))
 
         # Determine required output dimension from data labels
@@ -75,9 +80,8 @@ class NeuralWebSocket(tornado.websocket.WebSocketHandler): # type: ignore
         model.adapt_output_layer(required_output_dim)
 
         # Train Step
-        learning_rate = config.get("learningRate", 0.01)
         try:
-            loss = self.trainer.train_step(model, data_points, learning_rate)
+            loss = self.trainer.train_step(model, data_points, config)
         except IndexError as e:
             print(f"Training error: {e}")
             # Likely target out of bounds if something went wrong

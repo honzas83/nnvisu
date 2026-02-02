@@ -6,7 +6,7 @@
     <title>nnvisu: Neural Network Training Viz</title>
     <link rel="stylesheet" href="style.css">
 </head>
-<body>
+<body lang="en">
     <div id="app">
         <header>
             <h1>nnvisu</h1>
@@ -16,7 +16,8 @@
                     <li>Pick a <b>Target class</b> color and click the canvas to add training points.</li>
                     <li>Press <b>▶ Train</b> to start the neural network training.</li>
                     <li>Use the <b>History</b> slider to review previous decision maps.</li>
-                    <li>Adjust the <b>Architecture</b> or <b>Reset</b> the model to experiment.</li>
+                    <li>Adjust <b>Architecture</b> or <b>Advanced Settings</b> to experiment.</li>
+                    <li>Press <b>Reset Model</b> to randomize weights and start over.</li>
                 </ol>
             </div>
             <div id="controls">
@@ -44,6 +45,7 @@
                         <div class="control-group">
                             <button id="btn-play-pause" class="primary-btn btn-train">▶ Train</button>
                             <button id="btn-reset" class="secondary-btn btn-reset">Reset Model</button>
+                            <button id="btn-reset-advanced-main" class="secondary-btn btn-reset-advanced">Reset advanced parameters</button>
                         </div>
                         <div class="control-group">
                             <label for="arch-input" class="tooltip">
@@ -71,6 +73,60 @@
         </header>
         <main>
             <canvas id="viz-canvas" width="800" height="800"></canvas>
+            
+            <details id="advanced-options" class="control-panel" style="margin-top: 20px;">
+                <summary>Advanced Training Settings</summary>
+                <div class="panel-content advanced-grid">
+                    <div class="control-group">
+                        <label for="activation-select">Activation:</label>
+                        <div class="input-wrapper">
+                            <select id="activation-select">
+                                <option value="tanh">Tanh</option>
+                                <option value="relu">ReLU</option>
+                                <option value="leaky_relu">Leaky ReLU</option>
+                                <option value="gelu">GELU</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="control-group">
+                        <label for="optimizer-select">Optimizer:</label>
+                        <div class="input-wrapper">
+                            <select id="optimizer-select">
+                                <option value="adam">ADAM</option>
+                                <option value="sgd">SGD</option>
+                                <option value="rmsprop">RMSProp</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="control-group">
+                        <label for="lr-input">Learning Rate:</label>
+                        <div class="input-wrapper">
+                            <input type="number" id="lr-input" value="0.01" step="0.001" min="0.0001" lang="en-US">
+                        </div>
+                    </div>
+                    <div class="control-group">
+                        <label for="reg-input">Regularization (L2):</label>
+                        <div class="input-wrapper">
+                            <input type="number" id="reg-input" value="0" step="0.0001" min="0" lang="en-US">
+                        </div>
+                    </div>
+                    <div class="control-group">
+                        <label for="batch-input">Batch Size (0=full):</label>
+                        <div class="input-wrapper">
+                            <input type="number" id="batch-input" value="0" step="1" min="0">
+                        </div>
+                    </div>
+                    <div class="control-group">
+                        <label for="dropout-input">Dropout:</label>
+                        <div class="input-wrapper">
+                            <input type="number" id="dropout-input" value="0" step="0.1" min="0" max="1" lang="en-US">
+                        </div>
+                    </div>
+                    <div class="reset-container">
+                        <button id="btn-reset-advanced-panel" class="secondary-btn btn-reset-advanced">Reset advanced parameters</button>
+                    </div>
+                </div>
+            </details>
         </main>
         <footer>
             <div class="footer-info">

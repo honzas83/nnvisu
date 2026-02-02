@@ -3,7 +3,13 @@ from torch import nn
 from typing import Dict, Any
 
 class NeuralNetwork(nn.Module): # type: ignore
-    def __init__(self, hidden_layers: list[int] | None = None, output_dim: int = 2):
+    def __init__(
+        self, 
+        hidden_layers: list[int] | None = None, 
+        output_dim: int = 2,
+        activation: str = 'tanh',
+        dropout: float = 0.0
+    ):
         super().__init__()
         if hidden_layers is None:
             hidden_layers = [10, 5]
@@ -11,9 +17,19 @@ class NeuralNetwork(nn.Module): # type: ignore
         layers: list[nn.Module] = []
         input_dim = 2
         
+        # Activation mapping
+        act_fn = {
+            'tanh': nn.Tanh,
+            'relu': nn.ReLU,
+            'leaky_relu': lambda: nn.LeakyReLU(0.01),
+            'gelu': nn.GELU
+        }.get(activation.lower(), nn.Tanh)
+
         for h in hidden_layers:
             layers.append(nn.Linear(input_dim, h))
-            layers.append(nn.Tanh())
+            layers.append(act_fn())
+            if dropout > 0:
+                layers.append(nn.Dropout(p=dropout))
             input_dim = h
             
         layers.append(nn.Linear(input_dim, output_dim)) # Output classes (logits)
