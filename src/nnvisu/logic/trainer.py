@@ -14,9 +14,14 @@ class StatelessTrainer:
 
     # Class colors matching frontend (RGB)
     CLASS_COLORS = [
-        [52, 152, 219],  # Class 0: Blue #3498db
-        [230, 126, 34], # Class 1: Orange #e67e22
-        [231, 76, 60],  # Class 2: Red #e74c3c
+        [52, 152, 219],  # #3498db Blue
+        [230, 126, 34], # #e67e22 Orange
+        [231, 76, 60],  # #e74c3c Red
+        [155, 89, 182], # #9b59b6 Purple
+        [46, 204, 113], # #2ecc71 Green
+        [241, 196, 15], # #f1c40f Yellow
+        [121, 85, 72],  # #795548 Brown
+        [52, 73, 94]    # #34495e Navy
     ]
 
     def __init__(self) -> None:

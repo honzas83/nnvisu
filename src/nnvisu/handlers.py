@@ -49,6 +49,18 @@ class NeuralWebSocket(tornado.websocket.WebSocketHandler): # type: ignore
         # Reconstruct Model
         architecture = config.get("architecture", [10, 5])
         
+        incoming_weights = cast(Dict[str, Any], model_state).get("weights", [])
+        incoming_biases = cast(Dict[str, Any], model_state).get("biases", [])
+        
+        # Detect old output dim from last layer weights if available
+        old_output_dim = 2
+        if incoming_weights:
+            old_output_dim = len(incoming_weights[-1])
+            
+        # Initialize model with OLD dimensions first to load weights correctly
+        model = NeuralNetwork(hidden_layers=architecture, output_dim=old_output_dim)
+        model.load_state_dict_from_list(cast(Dict[str, Any], model_state))
+
         # Determine required output dimension from data labels
         # Find max label in the current batch
         max_label = 0
@@ -59,42 +71,8 @@ class NeuralWebSocket(tornado.websocket.WebSocketHandler): # type: ignore
         
         required_output_dim = max(2, max_label + 1)
         
-        # Initialize model with required dimensions
-        model = NeuralNetwork(hidden_layers=architecture, output_dim=required_output_dim)
-        
-        # Smart Load Weights
-        # Iterate through layers and load weights if shapes match
-        incoming_weights = cast(Dict[str, Any], model_state).get("weights", [])
-        incoming_biases = cast(Dict[str, Any], model_state).get("biases", [])
-        
-        linear_idx = 0
-        for layer in model.net:
-            if isinstance(layer, torch.nn.Linear):
-                if linear_idx < len(incoming_weights) and linear_idx < len(incoming_biases):
-                    # Check shape compatibility
-                    w_data = incoming_weights[linear_idx]
-                    b_data = incoming_biases[linear_idx]
-                    
-                    # Incoming is list of lists, convert to tensor to check shape
-                    # Optimization: Just check len(w_data) and len(w_data[0]) if possible
-                    # But simpler to try/except
-                    
-                    try:
-                        w_tensor = torch.tensor(w_data)
-                        b_tensor = torch.tensor(b_data)
-                        
-                        if w_tensor.shape == layer.weight.shape and b_tensor.shape == layer.bias.shape:
-                            layer.weight.data = w_tensor
-                            layer.bias.data = b_tensor
-                        else:
-                            # Shape mismatch (e.g. output layer changed size)
-                            # Keep initialized random weights for this layer
-                            # print(f"Layer {linear_idx} shape mismatch. Keeping new initialization.")
-                            pass
-                    except Exception as e:
-                        print(f"Error loading layer {linear_idx}: {e}")
-                
-                linear_idx += 1
+        # Adapt model to new dimensions if necessary
+        model.adapt_output_layer(required_output_dim)
 
         # Train Step
         learning_rate = config.get("learningRate", 0.01)

@@ -47,3 +47,26 @@ class NeuralNetwork(nn.Module): # type: ignore
                     layer.bias.data = torch.tensor(bias_list[linear_idx])
                 linear_idx += 1
 
+    def adapt_output_layer(self, new_output_dim: int) -> None:
+        """Adapt the final layer to a new number of output classes."""
+        last_layer_idx = len(self.net) - 1
+        old_layer = self.net[last_layer_idx]
+        assert isinstance(old_layer, nn.Linear)
+        
+        old_output_dim = old_layer.out_features
+        if old_output_dim == new_output_dim:
+            return
+            
+        in_features = old_layer.in_features
+        new_layer = nn.Linear(in_features, new_output_dim)
+        
+        # Copy existing weights/biases
+        with torch.no_grad():
+            min_out = min(old_output_dim, new_output_dim)
+            new_layer.weight[:min_out] = old_layer.weight[:min_out]
+            new_layer.bias[:min_out] = old_layer.bias[:min_out]
+            
+            # If adding classes, new ones are already randomized by nn.Linear init
+            
+        self.net[last_layer_idx] = new_layer
+

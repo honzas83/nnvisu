@@ -9,23 +9,28 @@
 <body>
     <div id="app">
         <header>
-            <h1>Neural Network Training Viz</h1>
+            <h1>nnvisu</h1>
+            <p>Neural Network decision boundary visualization. Click to add points, Play to train.</p>
             <div id="controls">
                 <div class="control-group">
-                    <label>Class:</label>
-                    <button id="btn-class-0" class="class-btn active" data-class="0">Class 0 (Blue)</button>
-                    <button id="btn-class-1" class="class-btn" data-class="1">Class 1 (Orange)</button>
-                    <button id="btn-class-2" class="class-btn" data-class="2">Class 2 (Red)</button>
+                    <label>Target class:</label>
+                    <div id="palette" class="palette">
+                        <!-- Colors will be injected here -->
+                    </div>
+                    <button id="btn-eraser" class="tool-btn">Eraser</button>
                 </div>
                 <div class="control-group">
-                    <button id="btn-clear">Clear Points</button>
+                    <button id="btn-play-pause" class="primary-btn">▶ Train</button>
+                    <button id="btn-reset" class="secondary-btn">Reset Model</button>
+                    <button id="btn-clear" class="secondary-btn">Clear Data</button>
                 </div>
                 <div class="control-group">
-                    <button id="btn-start" style="background: #2ecc71; color: white; border-color: #27ae60;">Start Training</button>
-                    <button id="btn-stop" style="background: #e74c3c; color: white; border-color: #c0392b;" disabled>Stop</button>
-                    <label for="arch-input" style="margin-left: 10px;">Arch:</label>
-                    <input type="text" id="arch-input" value="10-5" placeholder="e.g. 10-5-2" style="width: 80px; padding: 5px;">
-                    <button id="btn-reset" style="background: #95a5a6; color: white; border-color: #7f8c8d;">Reset Model</button>
+                    <label for="arch-input">Arch:</label>
+                    <input type="text" id="arch-input" value="10-5" placeholder="e.g. 10-5-2">
+                </div>
+                <div class="control-group history-group" style="width: 100%; display: flex; align-items: center; gap: 10px;">
+                    <label>History:</label>
+                    <input type="range" id="history-seekbar" min="0" max="0" value="0" step="1" style="flex-grow: 1;">
                 </div>
             </div>
         </header>
@@ -35,6 +40,11 @@
         <footer>
             <div id="status">Status: Idle</div>
             <div id="metrics">Epoch: 0 | Loss: N/A</div>
+            <div class="footer-info">
+                <span class="author">Jan Švec</span> &lt;honzas@kky.zcu.cz&gt;, Department of Cybernetics, University of West Bohemia.
+                <br>
+                <a href="https://github.com/honzas83/nnvisu" target="_blank">Project GitHub</a>
+            </div>
         </footer>
     </div>
     <script type="module" src="main.js"></script>

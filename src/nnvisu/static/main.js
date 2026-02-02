@@ -16,17 +16,39 @@ let isTraining = false;
 let currentEpoch = 0; 
 let currentLoss = 0;
 let currentClass = 0;
+let currentTool = 'draw'; // 'draw' or 'erase'
+
+// Training History
+let history = []; // Array of { epoch, mapData, loss }
+let recordingInterval = 10;
+const MAX_HISTORY = 256;
+
+const CLASS_COLORS = [
+    '#3498db', // Blue
+    '#e67e22', // Orange
+    '#e74c3c', // Red
+    '#9b59b6', // Purple
+    '#2ecc71', // Green
+    '#f1c40f', // Yellow
+    '#795548', // Brown
+    '#34495e'  // Navy
+];
 
 const canvas = document.getElementById('viz-canvas');
 const ctx = canvas.getContext('2d');
 const statusDiv = document.getElementById('status');
 const metricsDiv = document.getElementById('metrics');
+const historySeekbar = document.getElementById('history-seekbar');
 
 let mapCanvas = document.createElement('canvas');
-mapCanvas.width = 50;
-mapCanvas.height = 50;
+mapCanvas.width = 100;
+mapCanvas.height = 100;
 let mapCtx = mapCanvas.getContext('2d');
 let mapData = null;
+
+// Mouse tracking for eraser cursor
+let mousePos = { x: 0, y: 0 };
+const ERASER_RADIUS = 20;
 
 // Inputs
 const archInput = document.getElementById('arch-input');
@@ -35,31 +57,42 @@ if (config.architecture) {
 }
 
 // UI Handlers
-document.getElementById('btn-class-0').onclick = () => setClass(0);
-document.getElementById('btn-class-1').onclick = () => setClass(1);
-document.getElementById('btn-class-2').onclick = () => setClass(2);
+function initPalette() {
+    const palette = document.getElementById('palette');
+    CLASS_COLORS.forEach((color, idx) => {
+        const swatch = document.createElement('div');
+        swatch.className = 'swatch';
+        swatch.style.backgroundColor = color;
+        swatch.title = `Class ${idx}`;
+        swatch.onclick = () => setClass(idx);
+        if (idx === 0) swatch.classList.add('active');
+        palette.appendChild(swatch);
+    });
+}
+initPalette();
+
+document.getElementById('btn-eraser').onclick = () => setTool('erase');
 
 document.getElementById('btn-clear').onclick = () => {
     points = [];
     stateManager.saveData(points);
     mapData = null;
+    history = [];
+    updateHistoryUI();
     render();
 };
 
-document.getElementById('btn-start').onclick = () => {
-    if (!isTraining) {
-        isTraining = true;
-        updateUIStatus();
-        runTrainingLoop();
-    }
-};
-
-document.getElementById('btn-stop').onclick = () => {
-    isTraining = false;
-    updateUIStatus();
-};
+document.getElementById('btn-play-pause').onclick = toggleTraining;
 
 document.getElementById('btn-reset').onclick = resetModel;
+
+function toggleTraining() {
+    isTraining = !isTraining;
+    updateUIStatus();
+    if (isTraining) {
+        runTrainingLoop();
+    }
+}
 
 function resetModel() {
     isTraining = false;
@@ -68,6 +101,9 @@ function resetModel() {
     mapData = null;
     currentEpoch = 0;
     currentLoss = 0;
+    history = [];
+    recordingInterval = 10;
+    updateHistoryUI();
     
     const val = archInput.value.trim();
     if (/^\d+(-\d+)*$/.test(val)) {
@@ -78,6 +114,9 @@ function resetModel() {
     updateUIStatus();
     statusDiv.textContent = 'Status: Model Reset';
     metricsDiv.textContent = 'Steps: 0 | Loss: N/A';
+    
+    // Instant redraw - request a new map from the server with reset weights
+    runTrainingLoop();
 }
 
 archInput.addEventListener('blur', resetModel);
@@ -88,26 +127,62 @@ archInput.addEventListener('keydown', (e) => {
     }
 });
 
+canvas.addEventListener('mousemove', (e) => {
+    const rect = canvas.getBoundingClientRect();
+    mousePos.x = e.clientX - rect.left;
+    mousePos.y = e.clientY - rect.top;
+});
+
 canvas.addEventListener('mousedown', (e) => {
     const rect = canvas.getBoundingClientRect();
     const x = (e.clientX - rect.left) / CANVAS_WIDTH * 2 - 1; 
     const y = -((e.clientY - rect.top) / CANVAS_HEIGHT * 2 - 1); 
     
-    points.push({ x, y, label: currentClass });
+    if (currentTool === 'draw') {
+        points.push({ x, y, label: currentClass });
+    } else {
+        // Erase: Remove points within radius
+        const radius = ERASER_RADIUS / CANVAS_WIDTH * 2;
+        points = points.filter(p => {
+            const dx = p.x - x;
+            const dy = p.y - y;
+            return Math.sqrt(dx*dx + dy*dy) > radius;
+        });
+    }
     stateManager.saveData(points);
 });
 
 function setClass(cls) {
     currentClass = cls;
-    document.querySelectorAll('.class-btn').forEach(btn => btn.classList.remove('active'));
-    document.getElementById(`btn-class-${cls}`).classList.add('active');
+    currentTool = 'draw';
+    document.querySelectorAll('.swatch').forEach((s, idx) => {
+        s.classList.toggle('active', idx === cls);
+    });
+    document.getElementById('btn-eraser').classList.remove('active');
+}
+
+function setTool(tool) {
+    currentTool = tool;
+    if (tool === 'erase') {
+        document.querySelectorAll('.swatch').forEach(s => s.classList.remove('active'));
+        document.getElementById('btn-eraser').classList.add('active');
+    }
 }
 
 function updateUIStatus() {
+    const playBtn = document.getElementById('btn-play-pause');
+    playBtn.textContent = isTraining ? '⏸ Pause' : '▶ Train';
+    playBtn.style.background = isTraining ? '#e74c3c' : '#2ecc71';
+    
     statusDiv.textContent = isTraining ? 'Status: Training...' : 'Status: Idle';
     metricsDiv.textContent = `Steps: ${currentEpoch} | Loss: ${currentLoss.toFixed(4)}`;
-    document.getElementById('btn-start').disabled = isTraining;
-    document.getElementById('btn-stop').disabled = !isTraining;
+}
+
+function updateHistoryUI() {
+    historySeekbar.max = Math.max(0, history.length - 1);
+    if (isTraining || history.length > 0) {
+        historySeekbar.value = history.length - 1;
+    }
 }
 
 function connect() {
@@ -151,7 +226,6 @@ function handleMessage(message) {
         if (mapCanvas.width !== width || mapCanvas.height !== height) {
             mapCanvas.width = width;
             mapCanvas.height = height;
-            // Context needs to be re-acquired or just used, 2D context persists on resize usually but better to be safe if we were recreating
             mapCtx = mapCanvas.getContext('2d');
         }
 
@@ -167,35 +241,64 @@ function handleMessage(message) {
             for (let i = 0; i < len / 3; i++) {
                 const pixelIdx = i * 3;
                 const offset = i * 4;
-                imgData.data[offset] = bytes[pixelIdx];     // R
-                imgData.data[offset+1] = bytes[pixelIdx+1]; // G
-                imgData.data[offset+2] = bytes[pixelIdx+2]; // B
-                imgData.data[offset+3] = 100;               // A (keeping same alpha as before)
+                imgData.data[offset] = bytes[pixelIdx];
+                imgData.data[offset+1] = bytes[pixelIdx+1];
+                imgData.data[offset+2] = bytes[pixelIdx+2];
+                imgData.data[offset+3] = 100;
             }
         } else {
-            // Legacy/Fallback: Class IDs
+            // Legacy fallback
             for (let i = 0; i < len; i++) {
                 const cls = bytes[i];
                 const offset = i * 4;
-                if (cls === 0) {
-                    imgData.data[offset] = 52; imgData.data[offset+1] = 152; imgData.data[offset+2] = 219; imgData.data[offset+3] = 100;
-                } else if (cls === 1) {
-                    imgData.data[offset] = 230; imgData.data[offset+1] = 126; imgData.data[offset+2] = 34; imgData.data[offset+3] = 100;
-                } else {
-                    imgData.data[offset] = 231; imgData.data[offset+1] = 76; imgData.data[offset+2] = 60; imgData.data[offset+3] = 100;
-                }
+                const color = hexToRgb(CLASS_COLORS[cls] || '#000');
+                imgData.data[offset] = color.r;
+                imgData.data[offset+1] = color.g;
+                imgData.data[offset+2] = color.b;
+                imgData.data[offset+3] = 100;
             }
         }
         mapCtx.putImageData(imgData, 0, 0);
         createImageBitmap(mapCanvas).then(bmp => {
             mapData = bmp;
+            if (isTraining && currentEpoch % recordingInterval === 0) {
+                recordHistory(bmp, currentEpoch, currentLoss);
+            }
         });
     }
 }
 
+function hexToRgb(hex) {
+    const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+    return result ? {
+        r: parseInt(result[1], 16),
+        g: parseInt(result[2], 16),
+        b: parseInt(result[3], 16)
+    } : { r: 0, g: 0, b: 0 };
+}
+
+function recordHistory(bmp, epoch, loss) {
+    history.push({ epoch, mapData: bmp, loss });
+    if (history.length > MAX_HISTORY) {
+        history = history.filter((_, i) => i % 2 === 0);
+        recordingInterval *= 2;
+    }
+    updateHistoryUI();
+}
+
+historySeekbar.oninput = () => {
+    if (isTraining) return;
+    const idx = parseInt(historySeekbar.value);
+    const snapshot = history[idx];
+    if (snapshot) {
+        mapData = snapshot.mapData;
+        metricsDiv.textContent = `Steps: ${snapshot.epoch} (History) | Loss: ${snapshot.loss.toFixed(4)}`;
+    }
+};
+
 function runTrainingLoop() {
     if (!ws || ws.readyState !== WebSocket.OPEN) return;
-    if (!isTraining) return;
+    if (!isTraining && currentEpoch > 0) return; // Allow single step for reset/redraw
 
     const payload = {
         type: 'train_step',
@@ -227,12 +330,19 @@ function render() {
 
         ctx.beginPath();
         ctx.arc(screenX, screenY, 5, 0, 2 * Math.PI);
-        if (p.label === 0) ctx.fillStyle = '#3498db';
-        else if (p.label === 1) ctx.fillStyle = '#e67e22';
-        else ctx.fillStyle = '#e74c3c';
+        ctx.fillStyle = CLASS_COLORS[p.label] || '#333';
         ctx.fill();
         ctx.strokeStyle = '#fff';
         ctx.stroke();
+    }
+
+    if (currentTool === 'erase') {
+        ctx.beginPath();
+        ctx.arc(mousePos.x, mousePos.y, ERASER_RADIUS, 0, 2 * Math.PI);
+        ctx.strokeStyle = 'rgba(0,0,0,0.3)';
+        ctx.setLineDash([5, 5]);
+        ctx.stroke();
+        ctx.setLineDash([]);
     }
     
     requestAnimationFrame(render);
