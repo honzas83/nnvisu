@@ -10,27 +10,62 @@
     <div id="app">
         <header>
             <h1>nnvisu</h1>
-            <p>Neural Network decision boundary visualization. Click to add points, Play to train.</p>
+            <p>Neural Network decision boundary visualization.</p>
+            <div id="how-to" class="how-to">
+                <ol>
+                    <li>Pick a <b>Target class</b> color and click the canvas to add training points.</li>
+                    <li>Press <b>▶ Train</b> to start the neural network training.</li>
+                    <li>Use the <b>History</b> slider to review previous decision maps.</li>
+                    <li>Adjust the <b>Architecture</b> or <b>Reset</b> the model to experiment.</li>
+                </ol>
+            </div>
             <div id="controls">
-                <div class="control-group">
-                    <label>Target class:</label>
-                    <div id="palette" class="palette">
-                        <!-- Colors will be injected here -->
+                <!-- Section 1: Training Data -->
+                <div class="control-panel">
+                    <h3>Training Data</h3>
+                    <div class="panel-content">
+                        <div class="control-group">
+                            <label>Target class:</label>
+                            <div id="palette" class="palette">
+                                <!-- Colors will be injected here -->
+                            </div>
+                            <button id="btn-eraser" class="tool-btn">Eraser</button>
+                        </div>
+                        <div class="control-group">
+                            <button id="btn-clear" class="secondary-btn">Clear Data</button>
+                        </div>
                     </div>
-                    <button id="btn-eraser" class="tool-btn">Eraser</button>
                 </div>
-                <div class="control-group">
-                    <button id="btn-play-pause" class="primary-btn">▶ Train</button>
-                    <button id="btn-reset" class="secondary-btn">Reset Model</button>
-                    <button id="btn-clear" class="secondary-btn">Clear Data</button>
-                </div>
-                <div class="control-group">
-                    <label for="arch-input">Arch:</label>
-                    <input type="text" id="arch-input" value="10-5" placeholder="e.g. 10-5-2">
-                </div>
-                <div class="control-group history-group" style="width: 100%; display: flex; align-items: center; gap: 10px;">
-                    <label>History:</label>
-                    <input type="range" id="history-seekbar" min="0" max="0" value="0" step="1" style="flex-grow: 1;">
+
+                <!-- Section 2: Training & History -->
+                <div class="control-panel">
+                    <h3>Training & History</h3>
+                    <div class="panel-content">
+                        <div class="control-group">
+                            <button id="btn-play-pause" class="primary-btn btn-train">▶ Train</button>
+                            <button id="btn-reset" class="secondary-btn btn-reset">Reset Model</button>
+                        </div>
+                        <div class="control-group">
+                            <label for="arch-input" class="tooltip">
+                                Network Architecture (Hidden Layers) <span class="info-icon">ⓘ</span>
+                                <span class="tooltip-text">Each number is a layer; the value is the neurons. E.g., 10-5 means two layers with 10 and 5 neurons.</span>
+                            </label>
+                            <div class="input-wrapper">
+                                <input type="text" id="arch-input" value="10-5" placeholder="e.g. 10-5-2">
+                            </div>
+                            <small class="example-text">(e.g., 10-5)</small>
+                        </div>
+                        <div class="control-group status-integration" style="width: 100%; display: flex; flex-direction: column; align-items: center; gap: 5px; margin-top: 10px;">
+                            <div class="metrics-display">
+                                <span id="status">Status: Idle</span> | 
+                                <span id="metrics">Epoch: 0 | Loss: N/A</span>
+                            </div>
+                            <div style="width: 100%; display: flex; align-items: center; gap: 10px; justify-content: center;">
+                                <label>History:</label>
+                                <input type="range" id="history-seekbar" min="0" max="0" value="0" step="1" style="flex-grow: 1;">
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </header>
@@ -38,8 +73,6 @@
             <canvas id="viz-canvas" width="800" height="800"></canvas>
         </main>
         <footer>
-            <div id="status">Status: Idle</div>
-            <div id="metrics">Epoch: 0 | Loss: N/A</div>
             <div class="footer-info">
                 <span class="author">Jan Švec</span> &lt;honzas@kky.zcu.cz&gt;, Department of Cybernetics, University of West Bohemia.
                 <br>

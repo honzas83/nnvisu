@@ -176,6 +176,9 @@ function updateUIStatus() {
     
     statusDiv.textContent = isTraining ? 'Status: Training...' : 'Status: Idle';
     metricsDiv.textContent = `Steps: ${currentEpoch} | Loss: ${currentLoss.toFixed(4)}`;
+
+    // Add class for pulse animation
+    document.querySelector('.status-integration').classList.toggle('training-active', isTraining);
 }
 
 function updateHistoryUI() {
@@ -323,6 +326,19 @@ function render() {
     ctx.moveTo(CANVAS_WIDTH/2, 0); ctx.lineTo(CANVAS_WIDTH/2, CANVAS_HEIGHT);
     ctx.moveTo(0, CANVAS_HEIGHT/2); ctx.lineTo(CANVAS_WIDTH, CANVAS_HEIGHT/2);
     ctx.stroke();
+
+    // Axis Labels
+    ctx.fillStyle = '#999';
+    ctx.font = '10px Arial';
+    ctx.textAlign = 'center';
+    // X axis
+    ctx.fillText('-1.0', 20, CANVAS_HEIGHT/2 + 15);
+    ctx.fillText('0', CANVAS_WIDTH/2 + 8, CANVAS_HEIGHT/2 + 15);
+    ctx.fillText('+1.0', CANVAS_WIDTH - 20, CANVAS_HEIGHT/2 + 15);
+    // Y axis
+    ctx.textAlign = 'left';
+    ctx.fillText('+1.0', CANVAS_WIDTH/2 + 5, 15);
+    ctx.fillText('-1.0', CANVAS_WIDTH/2 + 5, CANVAS_HEIGHT - 10);
 
     for (const p of points) {
         const screenX = (p.x + 1) / 2 * CANVAS_WIDTH;

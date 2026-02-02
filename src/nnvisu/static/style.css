@@ -32,17 +32,67 @@ header h1 {
 }
 
 header p {
-    margin: 0 0 15px 0;
+    margin: 0 0 5px 0;
     color: #666;
     font-size: 0.9em;
 }
 
+.how-to {
+    text-align: left;
+    max-width: 600px;
+    margin: 0 auto 20px auto;
+    font-size: 0.85em;
+    background: #f9f9f9;
+    padding: 5px 15px;
+    border-radius: 8px;
+    border-left: 4px solid #3498db;
+    color: #444;
+}
+
+.how-to ol {
+    margin: 5px 0;
+    padding-left: 25px;
+}
+
+.how-to li {
+    margin-bottom: 3px;
+}
+
 #controls {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    width: 100%;
+    align-items: center;
+    margin-top: 10px;
+}
+
+.control-panel {
+    border: 1px solid #eee;
+    border-radius: 12px;
+    padding: 20px;
+    width: 100%;
+    max-width: 800px;
+    box-sizing: border-box;
+    background: #fff;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.02);
+}
+
+.control-panel h3 {
+    margin: 0 0 15px 0;
+    font-size: 0.85em;
+    color: #999;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    border-bottom: 1px solid #f0f0f0;
+    padding-bottom: 8px;
+}
+
+.panel-content {
     display: flex;
     flex-wrap: wrap;
     gap: 15px;
     justify-content: center;
-    margin-top: 10px;
 }
 
 .control-group {
@@ -57,29 +107,39 @@ header p {
 }
 
 .swatch {
-    width: 24px;
-    height: 24px;
-    border-radius: 4px;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
     border: 2px solid transparent;
     cursor: pointer;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    transition: transform 0.1s, box-shadow 0.1s;
+}
+
+.swatch:hover {
+    transform: scale(1.1);
 }
 
 .swatch.active {
     border-color: #333;
-    box-shadow: 0 0 0 2px #fff inset;
+    box-shadow: 0 0 0 2px #fff inset, 0 4px 8px rgba(0,0,0,0.2);
+    transform: scale(1.1);
 }
 
 button {
     padding: 8px 16px;
     border: 1px solid #ccc;
     background: #fff;
-    border-radius: 4px;
+    border-radius: 6px;
     cursor: pointer;
     font-size: 14px;
+    font-weight: 500;
+    transition: all 0.2s;
 }
 
 button:hover {
-    background: #f0f0f0;
+    background: #f8f9fa;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
 }
 
 button.primary-btn {
@@ -92,10 +152,100 @@ button.primary-btn:hover {
     background: #27ae60;
 }
 
-button.active {
-    background: #333;
+#btn-eraser.active {
+    background: #3498db;
     color: white;
-    border-color: #333;
+    border-color: #2980b9;
+    box-shadow: 0 0 10px rgba(52, 152, 219, 0.3);
+}
+
+#btn-clear {
+    color: #e74c3c;
+    border-color: #fab1a0;
+}
+
+#btn-clear:hover {
+    background: #fff5f5;
+    border-color: #e74c3c;
+}
+
+.btn-reset {
+    color: #e67e22;
+    border-color: #ffdaaf;
+}
+
+.btn-reset:hover {
+    background: #fffaf0;
+    border-color: #e67e22;
+}
+
+/* Tooltips */
+.tooltip {
+    position: relative;
+    cursor: help;
+}
+
+.info-icon {
+    font-size: 0.9em;
+    color: #3498db;
+    margin-left: 4px;
+}
+
+.tooltip-text {
+    visibility: hidden;
+    width: 200px;
+    background-color: #333;
+    color: #fff;
+    text-align: center;
+    border-radius: 6px;
+    padding: 10px;
+    position: absolute;
+    z-index: 1;
+    bottom: 125%;
+    left: 50%;
+    margin-left: -100px;
+    opacity: 0;
+    transition: opacity 0.3s;
+    font-size: 0.85em;
+    font-weight: normal;
+    line-height: 1.4;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+}
+
+.tooltip:hover .tooltip-text {
+    visibility: visible;
+    opacity: 1;
+}
+
+/* Input Styling */
+.input-wrapper {
+    background: #f8f9fa;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    padding: 2px;
+}
+
+#arch-input {
+    border: none;
+    background: transparent;
+    padding: 6px 10px;
+    font-family: monospace;
+    font-weight: bold;
+    color: #2c3e50;
+    outline: none;
+}
+
+/* Animation */
+@keyframes pulse-green {
+    0% { transform: scale(1); opacity: 1; }
+    50% { transform: scale(1.05); opacity: 0.8; }
+    100% { transform: scale(1); opacity: 1; }
+}
+
+.training-active #status {
+    color: #27ae60;
+    font-weight: bold;
+    animation: pulse-green 2s infinite;
 }
 
 canvas {
@@ -129,4 +279,20 @@ footer {
 
 footer #status, footer #metrics {
     font-family: monospace;
+}
+
+@media (max-width: 850px) {
+    #app {
+        margin: 0;
+        padding: 10px;
+        width: 100%;
+        border-radius: 0;
+    }
+    .control-panel {
+        padding: 15px;
+    }
+    canvas {
+        width: 100%;
+        height: auto;
+    }
 }
