@@ -1,9 +1,8 @@
-import pytest
 import torch
 import torch.nn as nn
-from src.logic.model import NeuralNetwork
+from nnvisu.logic.model import NeuralNetwork
 
-def test_default_architecture():
+def test_default_architecture() -> None:
     """Test that default initialization works (legacy behavior)."""
     model = NeuralNetwork()
     assert len(model.net) > 0
@@ -14,7 +13,7 @@ def test_default_architecture():
     assert model.net[0].out_features == 10
     assert model.net[-1].out_features == 2
 
-def test_dynamic_architecture_config():
+def test_dynamic_architecture_config() -> None:
     """Test initialization with custom hidden layers."""
     hidden_layers = [8, 4, 3]
     model = NeuralNetwork(hidden_layers=hidden_layers, output_dim=2)
@@ -38,13 +37,13 @@ def test_dynamic_architecture_config():
     assert model.net[6].in_features == 3
     assert model.net[6].out_features == 2
 
-def test_custom_output_dim():
+def test_custom_output_dim() -> None:
     """Test initialization with custom output dimension (for 3 classes)."""
     model = NeuralNetwork(hidden_layers=[5], output_dim=3)
     # Last layer should output 3
     assert model.net[-1].out_features == 3
 
-def test_empty_hidden_layers():
+def test_empty_hidden_layers() -> None:
     """Test initialization with 0 hidden layers (Linear Perceptron)."""
     model = NeuralNetwork(hidden_layers=[], output_dim=2)
     # Should be just one Linear layer: 2 -> 2
@@ -53,7 +52,7 @@ def test_empty_hidden_layers():
     assert model.net[0].in_features == 2
     assert model.net[0].out_features == 2
 
-def test_forward_pass_shape():
+def test_forward_pass_shape() -> None:
     """Test that forward pass returns correct shape."""
     model = NeuralNetwork(hidden_layers=[5], output_dim=3)
     batch_size = 4
