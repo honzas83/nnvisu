@@ -5,7 +5,11 @@ import tornado.websocket
 
 from nnvisu.logic.model import NeuralNetwork
 from nnvisu.logic.trainer import StatelessTrainer
-from nnvisu.protocol import TrainingPayload
+from nnvisu.protocol import TrainingPayload, GenerateDataRequest
+from nnvisu.logic.generators import (
+    generate_circles, generate_moons, generate_blobs,
+    generate_anisotropic, generate_varied_variance
+)
 
 class NeuralWebSocket(tornado.websocket.WebSocketHandler): # type: ignore
     def initialize(self) -> None:
@@ -35,6 +39,41 @@ class NeuralWebSocket(tornado.websocket.WebSocketHandler): # type: ignore
             # Cast for type checking, though runtime dict
             payload = cast(TrainingPayload, data)
             self.handle_train_step(payload)
+        elif msg_type == "generate_data":
+            payload = cast(GenerateDataRequest, data)
+            self.handle_generate_data(payload)
+
+    def handle_generate_data(self, payload: GenerateDataRequest) -> None:
+        dist_type = payload.get("distribution")
+        num_classes = payload.get("num_classes", 2)
+        
+        try:
+            if dist_type == "circles":
+                data = generate_circles(n_classes=num_classes)
+            elif dist_type == "moons":
+                data = generate_moons(n_classes=num_classes)
+            elif dist_type == "blobs":
+                data = generate_blobs(n_classes=num_classes)
+            elif dist_type == "anisotropic":
+                data = generate_anisotropic(n_classes=num_classes)
+            elif dist_type == "varied_variance":
+                data = generate_varied_variance(n_classes=num_classes)
+            else:
+                self.write_message(json.dumps({
+                    "type": "error",
+                    "message": f"Unknown distribution type: {dist_type}"
+                }))
+                return
+            
+            self.write_message(json.dumps({
+                "type": "data_generated",
+                "data": data
+            }))
+        except Exception as e:
+            self.write_message(json.dumps({
+                "type": "error",
+                "message": f"Error generating data: {str(e)}"
+            }))
 
     def handle_train_step(self, payload: TrainingPayload) -> None:
         config = payload.get("config")

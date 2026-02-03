@@ -33,6 +33,15 @@ class TrainingResult(TypedDict):
     model: ModelDict
     metrics: TrainingResultMetrics
 
+class GenerateDataRequest(TypedDict):
+    type: str
+    distribution: str
+    num_classes: int
+
+class DataGeneratedResponse(TypedDict):
+    type: str
+    data: List[DataPoint]
+
 class ErrorResponse(TypedDict):
     type: str
     message: str

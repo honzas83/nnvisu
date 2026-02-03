@@ -1,12 +1,12 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en-US">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>nnvisu: Neural Network Training Viz</title>
     <link rel="stylesheet" href="style.css">
 </head>
-<body lang="en">
+<body lang="en-US">
     <div id="app">
         <header>
             <h1>nnvisu</h1>
@@ -14,6 +14,7 @@
             <div id="how-to" class="how-to">
                 <ol>
                     <li>Pick a <b>Target class</b> color and click the canvas to add training points.</li>
+                    <li>Alternatively, use <b>Generate data</b> buttons to create complex synthetic datasets with specified number of classes.</li>
                     <li>Press <b>▶ Train</b> to start the neural network training.</li>
                     <li>Use the <b>History</b> slider to review previous decision maps.</li>
                     <li>Adjust <b>Architecture</b> or <b>Advanced Settings</b> to experiment.</li>
@@ -34,6 +35,22 @@
                         </div>
                         <div class="control-group">
                             <button id="btn-clear" class="secondary-btn">Clear Data</button>
+                        </div>
+                        <div class="control-group generator-controls" style="width: 100%; border-top: 1px solid #f0f0f0; padding-top: 15px; margin-top: 5px; justify-content: center; gap: 15px; flex-wrap: nowrap;">
+                            <label style="white-space: nowrap;">Generate data:</label>
+                            <div class="control-group" style="gap: 5px;">
+                                <button id="btn-gen-circles" class="gen-btn" title="Concentric Circles">⭕ Circles</button>
+                                <button id="btn-gen-moons" class="gen-btn" title="Interleaving Moons">🌙 Moons</button>
+                                <button id="btn-gen-blobs" class="gen-btn" title="Gaussian Blobs">☁️ Blobs</button>
+                                <button id="btn-gen-anisotropic" class="gen-btn" title="Anisotropic Clusters">📐 Aniso</button>
+                                <button id="btn-gen-varied" class="gen-btn" title="Varied Variances">📊 Varied</button>
+                            </div>
+                            <div class="control-group" style="gap: 5px;">
+                                <div class="input-wrapper">
+                                    <input type="number" id="gen-classes" value="3" min="2" max="8" style="width: 45px;">
+                                </div>
+                                <label for="gen-classes">classes</label>
+                            </div>
                         </div>
                     </div>
                 </div>

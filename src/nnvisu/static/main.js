@@ -98,10 +98,10 @@ function resetAdvancedToDefaults() {
     // Update UI
     activationSelect.value = config.activation;
     optimizerSelect.value = config.optimizer;
-    lrInput.value = config.learningRate;
-    regInput.value = config.regularization;
-    batchInput.value = config.batchSize;
-    dropoutInput.value = config.dropout;
+    lrInput.valueAsNumber = config.learningRate;
+    regInput.valueAsNumber = config.regularization;
+    batchInput.valueAsNumber = config.batchSize;
+    dropoutInput.valueAsNumber = config.dropout;
     
     stateManager.saveConfig(config);
     resetModel(); // Reset weights when returning to base configuration
@@ -348,6 +348,14 @@ function handleMessage(message) {
                 recordHistory(bmp, currentEpoch, currentLoss);
             }
         });
+    } else if (message.type === 'data_generated') {
+        points = message.data;
+        stateManager.saveData(points);
+        // Reset model weights and training state when data changes
+        resetModel();
+    } else if (message.type === 'error') {
+        console.error('Server error:', message.message);
+        statusDiv.textContent = 'Status: Error';
     }
 }
 
@@ -368,6 +376,31 @@ function recordHistory(bmp, epoch, loss) {
     }
     updateHistoryUI();
 }
+
+// Generator Handlers
+const genClassesInput = document.getElementById('gen-classes');
+const generatorButtons = {
+    'btn-gen-circles': 'circles',
+    'btn-gen-moons': 'moons',
+    'btn-gen-blobs': 'blobs',
+    'btn-gen-anisotropic': 'anisotropic',
+    'btn-gen-varied': 'varied_variance'
+};
+
+Object.entries(generatorButtons).forEach(([id, dist]) => {
+    const btn = document.getElementById(id);
+    if (btn) {
+        btn.onclick = () => {
+            if (!ws || ws.readyState !== WebSocket.OPEN) return;
+            const numClasses = parseInt(genClassesInput.value) || 2;
+            ws.send(JSON.stringify({
+                type: 'generate_data',
+                distribution: dist,
+                num_classes: numClasses
+            }));
+        };
+    }
+});
 
 historySeekbar.oninput = () => {
     if (isTraining) return;
