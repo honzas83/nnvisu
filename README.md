@@ -6,16 +6,43 @@ A real-time web application to visualize the training process of a neural networ
 
 ## Features
 
-- **Interactive Data Definition**: Add points to a 2D canvas with different classes.
-- **Real-time Visualization**: Watch the classification regions change as the model learns.
-- **Incremental Training**: Pause, add more data, and resume training from the previous state.
-- **High Performance**: Uses Tornado for low-latency communication and HTML5 Canvas for smooth rendering.
+### Interactive Data Definition
+- **Manual Entry**: Pick a target class color and click on the canvas to place training examples.
+- **Synthetic Generators**: Create complex datasets using built-in generators:
+  - ⭕ **Circles**: Concentric circles.
+  - 🌙 **Moons**: Interleaving half-circles.
+  - ☁️ **Blobs**: Gaussian clusters.
+  - 📐 **Aniso**: Anisotropically distributed clusters.
+  - 📊 **Varied**: Clusters with varying variances.
+- **Multi-class Support**: Configure between 2 and 8 classes for generation.
+- **Editing Tools**: Use the Eraser tool to remove specific points or Clear Data to start fresh.
+
+### Real-time Visualization & Analysis
+- **Decision Boundaries**: Watch the classification regions change smoothly as the model learns.
+- **Training History**: Use the History seekbar to scrub through previous training states and observe how the decision map evolved.
+- **Live Metrics**: Monitor training progress with real-time updates for Epoch and Loss.
+
+### Model Configuration
+- **Dynamic Architecture**: Define the hidden layer structure (e.g., `10-5-2`) on the fly.
+- **Advanced Training Settings**:
+  - **Activations**: Tanh, ReLU, Leaky ReLU, GELU.
+  - **Optimizers**: ADAM, SGD, RMSProp.
+  - **Hyperparameters**: Learning Rate, L2 Regularization, Batch Size, and Dropout.
+
+## How to Use
+
+1. **Pick a Target class** color and click the canvas to add training points.
+2. **Alternatively, use Generate data** buttons to create complex synthetic datasets with a specified number of classes.
+3. **Press ▶ Train** to start the neural network training.
+4. **Use the History slider** to review previous decision maps.
+5. **Adjust Architecture or Advanced Settings** to experiment with different model configurations.
+6. **Press Reset Model** to randomize weights and start over.
 
 ## Tech Stack
 
-- **Backend**: Python, Tornado, PyTorch, NumPy
-- **Frontend**: Vanilla JavaScript, HTML5 Canvas, CSS3
-- **Dev Tools**: Ruff, Mypy
+- **Backend**: Python 3.11+, Tornado (WebSockets), PyTorch (Inference/Training), NumPy
+- **Frontend**: Vanilla JavaScript (ES6), HTML5 Canvas, CSS3
+- **Dev Tools**: Pytest, Ruff, Mypy
 
 ## Getting Started
 
@@ -26,7 +53,11 @@ A real-time web application to visualize the training process of a neural networ
 
 ### Installation
 
-1. Clone the repository.
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/honzas83/nnvisu.git
+   cd nnvisu
+   ```
 2. Install dependencies (CPU-only recommended):
    ```bash
    pip install -r requirements.txt
@@ -49,14 +80,11 @@ pip install "git+https://github.com/honzas83/nnvisu.git" --extra-index-url https
    http://localhost:8888
    ```
 
-## Usage
+## Author
 
-1. **Select Class**: Use the buttons to toggle between Class 0 (Blue) and Class 1 (Orange).
-2. **Add Points**: Click on the canvas to place training examples.
-3. **Start Training**: Click "Start Training" to begin the optimization process.
-4. **Refine**: Click "Stop", add more points if needed, and click "Start" again to continue training.
-5. **Reset**: Use "Reset Model" to clear weights and start over.
+**Jan Švec** (<honzas@kky.zcu.cz>)
+Department of Cybernetics, University of West Bohemia.
 
 ## License
 
-MIT
+This project is licensed under the [BSD 3-Clause License](LICENSE).
