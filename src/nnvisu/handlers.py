@@ -64,40 +64,46 @@ class NeuralWebSocket(tornado.websocket.WebSocketHandler): # type: ignore
             if latest_metric:
                 self.total_steps += drained_count
                 
-                # Use session lock to safely access model for visualization
+                # 1. Quickly grab model and state under lock
                 with self.session.lock:
                     model = self.session.model
-                    if model:
-                        # Throttle sending full model weights (JSON is heavy)
-                        now = time.time()
-                        model_state = None
-                        if now - self.last_model_update_time > 1.0: # Once per second
-                            model_state = model.get_state_dict_as_list()
-                            self.last_model_update_time = now
+                    if not model:
+                        return
+                        
+                    # Throttle sending full model weights (JSON is heavy)
+                    now = time.time()
+                    model_state = None
+                    if now - self.last_model_update_time > 1.0: # Once per second
+                        model_state = model.get_state_dict_as_list()
+                        self.last_model_update_time = now
 
-                        # 1. Send Metrics
-                        self.write_message(json.dumps({
-                            "type": "step_result",
-                            "model": model_state,
-                            "metrics": {
-                                "loss": latest_metric["loss"],
-                                "step": self.total_steps
-                            }
-                        }))
-                        
-                        # 2. Generate and send binary map (Fast)
-                        width = StatelessTrainer.GRID_WIDTH
-                        height = StatelessTrainer.GRID_HEIGHT
-                        rgb_bytes = self.trainer.generate_binary_map(model, width, height)
-                        
-                        header = bytearray()
-                        header.append(0x01) # TYPE: Map Update
-                        header.extend(width.to_bytes(2, 'little'))
-                        header.extend(height.to_bytes(2, 'little'))
-                        
-                        payload = header + rgb_bytes
-                        self.write_message(bytes(payload), binary=True)
-                        self.frame_counter += 1
+                # 2. Perform expensive work (JSON/Binary map) OUTSIDE the lock
+                # This allows the training thread to continue uninterrupted.
+                # Minor tearing in the visualization is acceptable.
+                
+                # Send Metrics
+                self.write_message(json.dumps({
+                    "type": "step_result",
+                    "model": model_state,
+                    "metrics": {
+                        "loss": latest_metric["loss"],
+                        "step": self.total_steps
+                    }
+                }))
+                
+                # Generate and send binary map (Computationally expensive)
+                width = StatelessTrainer.GRID_WIDTH
+                height = StatelessTrainer.GRID_HEIGHT
+                rgb_bytes = self.trainer.generate_binary_map(model, width, height)
+                
+                header = bytearray()
+                header.append(0x01) # TYPE: Map Update
+                header.extend(width.to_bytes(2, 'little'))
+                header.extend(height.to_bytes(2, 'little'))
+                
+                payload = header + rgb_bytes
+                self.write_message(bytes(payload), binary=True)
+                self.frame_counter += 1
             
             # FPS Logging
             now = time.time()

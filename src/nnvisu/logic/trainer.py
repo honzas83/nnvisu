@@ -200,26 +200,34 @@ class StatefulTrainer(StatelessTrainer):
         last_log_time = time.time()
 
         while not session.stop_event.is_set():
-            # Use lock to ensure model reference and mode (train/eval) are stable
+            # 1. Quickly grab state references under lock
             with session.lock:
-                model, data, config = session.model, session.data, session.config.copy()
-                
-                if model and data:
+                model, data = session.model, session.data
+                # Copy config once per loop iteration or less? 
+                # For now, we grab a reference to the dict.
+                config = session.config 
+            
+            if model and data:
+                try:
+                    # 2. Perform training step
+                    # Note: We are operating on model parameters without holding the session lock 
+                    # during the entire computation. This allows the visualization thread (main thread) 
+                    # to acquire the lock even while we are training. 
+                    # Tearing is acceptable for visualization.
+                    loss = self.train_step_stateful(model, data, config)
+                    step_counter += 1
+                    
+                    # 3. Push result to queue if not full
                     try:
-                        loss = self.train_step_stateful(model, data, config)
-                        step_counter += 1
-                        
-                        # Push result to queue if not full
-                        try:
-                            session.step_queue.put({
-                                "loss": loss,
-                                "timestamp": time.time()
-                            }, block=False)
-                        except queue.Full:
-                            pass
+                        session.step_queue.put({
+                            "loss": loss,
+                            "timestamp": time.time()
+                        }, block=False)
+                    except queue.Full:
+                        pass
                             
-                    except Exception as e:
-                        logger.error(f"Error in training loop: {e}", exc_info=True)
+                except Exception as e:
+                    logger.error(f"Error in training loop: {e}", exc_info=True)
             
             # Periodic logging
             now = time.time()
@@ -230,8 +238,11 @@ class StatefulTrainer(StatelessTrainer):
                 step_counter = 0
                 last_log_time = now
 
-            # Cooperative multitasking: allow main thread to run PeriodicCallback
+            # Cooperative multitasking:
+            # We only sleep if there's no data to process.
+            # When training is active, we rely on thread time-slicing.
             if not data:
                 time.sleep(0.1)
-            else:
-                time.sleep(0.0001)
+            elif step_counter % 100 == 0:
+                # Yield every 100 steps to be a good citizen
+                time.sleep(0.001)
