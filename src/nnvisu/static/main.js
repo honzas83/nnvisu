@@ -228,14 +228,14 @@ canvas.addEventListener('mousemove', (e) => {
 
 canvas.addEventListener('mousedown', (e) => {
     const rect = canvas.getBoundingClientRect();
-    const x = (e.clientX - rect.left) / CANVAS_WIDTH * 2 - 1; 
-    const y = -((e.clientY - rect.top) / CANVAS_HEIGHT * 2 - 1); 
+    const x = (e.clientX - rect.left) / rect.width * 2 - 1; 
+    const y = -((e.clientY - rect.top) / rect.height * 2 - 1); 
     
     if (currentTool === 'draw') {
         points.push({ x, y, label: currentClass });
     } else {
         // Erase: Remove points within radius
-        const radius = ERASER_RADIUS / CANVAS_WIDTH * 2;
+        const radius = ERASER_RADIUS / rect.width * 2;
         points = points.filter(p => {
             const dx = p.x - x;
             const dy = p.y - y;
