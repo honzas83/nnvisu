@@ -1,11 +1,19 @@
 import asyncio
 import importlib.resources
+import logging
 import os
 from pathlib import Path
 
 import tornado.web
 
 from nnvisu.handlers import NeuralWebSocket
+
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger(__name__)
 
 def make_app() -> tornado.web.Application:
     try:
@@ -34,7 +42,7 @@ def make_app() -> tornado.web.Application:
 async def main() -> None:
     app = make_app()
     app.listen(8888)
-    print("Server started on http://localhost:8888")
+    logger.info("Server started on http://localhost:8888")
     await asyncio.Event().wait()
 
 if __name__ == "__main__":

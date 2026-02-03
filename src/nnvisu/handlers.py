@@ -1,6 +1,7 @@
 import json
 import threading
 import time
+import logging
 from typing import Any, Dict, cast, List
 
 import tornado.websocket
@@ -16,6 +17,8 @@ from nnvisu.logic.generators import (
     generate_anisotropic, generate_varied_variance
 )
 
+logger = logging.getLogger(__name__)
+
 class NeuralWebSocket(tornado.websocket.WebSocketHandler): # type: ignore
     def initialize(self) -> None:
         self.session = TrainingSession()
@@ -24,12 +27,14 @@ class NeuralWebSocket(tornado.websocket.WebSocketHandler): # type: ignore
         self.callback = tornado.ioloop.PeriodicCallback(self.check_training_updates, 33) # ~30 FPS
         self.total_steps = 0
         self.last_model_update_time = 0
+        self.frame_counter = 0
+        self.last_fps_log_time = time.time()
 
     def check_origin(self, origin: str) -> bool:
         return True
 
     def open(self) -> None:
-        print("WebSocket opened")
+        logger.info("WebSocket opened")
         # Start the update checker
         self.callback.start()
         
@@ -92,9 +97,20 @@ class NeuralWebSocket(tornado.websocket.WebSocketHandler): # type: ignore
                         
                         payload = header + rgb_bytes
                         self.write_message(bytes(payload), binary=True)
+                        self.frame_counter += 1
+            
+            # FPS Logging
+            now = time.time()
+            if now - self.last_fps_log_time >= 5.0:
+                elapsed = now - self.last_fps_log_time
+                fps = self.frame_counter / elapsed
+                if self.session.training_active:
+                    logger.info(f"[WebSocket] FPS sent to client: {fps:.2f}")
+                self.frame_counter = 0
+                self.last_fps_log_time = now
                     
         except Exception as e:
-            print(f"Update handler error: {e}")
+            logger.error(f"Update handler error: {e}", exc_info=True)
             pass
 
     def on_message(self, message: str) -> None:
@@ -104,24 +120,22 @@ class NeuralWebSocket(tornado.websocket.WebSocketHandler): # type: ignore
                 data = json.loads(message)
                 self.handle_message(data)
         except json.JSONDecodeError:
-            print("Invalid JSON received")
+            logger.error("Invalid JSON received")
         except Exception as e:
-            print(f"Error handling message: {e}")
-            import traceback
-            traceback.print_exc()
+            logger.error(f"Error handling message: {e}", exc_info=True)
 
     def handle_message(self, data: Dict[str, Any]) -> None:
         msg_type = data.get("type")
-        print(f"Received message: {msg_type}")
+        logger.info(f"Received message: {msg_type}")
 
         if msg_type == "start_training":
             self.handle_start_training()
         elif msg_type == "stop_training":
             self.handle_stop_training()
         elif msg_type == "reset":
-            print("Processing reset command...")
+            logger.info("Processing reset command...")
             self.handle_reset()
-            print("Reset command processed.")
+            logger.info("Reset command processed.")
         elif msg_type == "update_config":
             self.handle_update_config(data)
         elif msg_type == "generate_data":
@@ -138,17 +152,17 @@ class NeuralWebSocket(tornado.websocket.WebSocketHandler): # type: ignore
 
     def handle_reset(self) -> None:
         was_active = self.session.training_active
-        print(f"handle_reset: was_active={was_active}")
+        logger.info(f"handle_reset: was_active={was_active}")
         
         # Always stop training if it was active
         if was_active:
-            print("handle_reset: stopping training")
+            logger.info("handle_reset: stopping training")
             self.handle_stop_training()
         
         self.total_steps = 0
         self.session.reset_steps()
         
-        print("handle_reset: resetting steps and model")
+        logger.info("handle_reset: resetting steps and model")
         # Initialize default model
         self._init_default_model()
         
@@ -164,7 +178,7 @@ class NeuralWebSocket(tornado.websocket.WebSocketHandler): # type: ignore
                 required_dim = max(2, max_label + 1)
                 self.session.model.adapt_output_layer(required_dim)
         
-        print("handle_reset: reset complete (training stopped)")
+        logger.info("handle_reset: reset complete (training stopped)")
 
     def handle_train_step(self, payload: TrainingPayload) -> None:
         config = payload.get("config")

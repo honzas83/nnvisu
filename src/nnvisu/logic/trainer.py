@@ -1,5 +1,6 @@
 import base64
 import time
+import logging
 import queue
 from typing import List, TYPE_CHECKING
 
@@ -12,6 +13,8 @@ from nnvisu.protocol import DataPoint
 
 if TYPE_CHECKING:
     from nnvisu.logic.session import TrainingSession
+
+logger = logging.getLogger(__name__)
 
 class StatelessTrainer:
     GRID_WIDTH = 100
@@ -193,6 +196,9 @@ class StatefulTrainer(StatelessTrainer):
         """
         The main loop to be run in a thread.
         """
+        step_counter = 0
+        last_log_time = time.time()
+
         while not session.stop_event.is_set():
             # Use lock to ensure model reference and mode (train/eval) are stable
             with session.lock:
@@ -201,6 +207,7 @@ class StatefulTrainer(StatelessTrainer):
                 if model and data:
                     try:
                         loss = self.train_step_stateful(model, data, config)
+                        step_counter += 1
                         
                         # Push result to queue if not full
                         try:
@@ -212,10 +219,17 @@ class StatefulTrainer(StatelessTrainer):
                             pass
                             
                     except Exception as e:
-                        print(f"Error in training loop: {e}")
-                        import traceback
-                        traceback.print_exc()
+                        logger.error(f"Error in training loop: {e}", exc_info=True)
             
+            # Periodic logging
+            now = time.time()
+            if now - last_log_time >= 5.0:
+                elapsed = now - last_log_time
+                tps = step_counter / elapsed
+                logger.info(f"[Training] Steps per second: {tps:.2f}")
+                step_counter = 0
+                last_log_time = now
+
             # Cooperative multitasking: allow main thread to run PeriodicCallback
             if not data:
                 time.sleep(0.1)
