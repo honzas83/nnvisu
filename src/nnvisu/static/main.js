@@ -104,6 +104,7 @@ function resetAdvancedToDefaults() {
     dropoutInput.valueAsNumber = config.dropout;
     
     stateManager.saveConfig(config);
+    updateConfig();
     resetModel(); // Reset weights when returning to base configuration
 }
 
@@ -120,10 +121,11 @@ function updateConfig() {
     config.dropout = parseFloat(dropoutInput.value) || 0;
     stateManager.saveConfig(config);
     
-    // If not training, we might want to trigger a single step to show effects 
-    // especially for regularization or dropout changes.
-    if (!isTraining) {
-        runTrainingLoop();
+    if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({
+            type: 'update_config',
+            payload: config
+        }));
     }
 }
 
@@ -132,6 +134,9 @@ function updateConfig() {
         if (el === activationSelect) {
             resetModel();
         } else {
+            if (isTraining) {
+                toggleTraining();
+            }
             updateConfig();
         }
     });
@@ -159,6 +164,7 @@ document.getElementById('btn-clear').onclick = () => {
     mapData = null;
     history = [];
     updateHistoryUI();
+    sendDataUpdate();
     render();
 };
 
@@ -169,8 +175,13 @@ document.getElementById('btn-reset').onclick = resetModel;
 function toggleTraining() {
     isTraining = !isTraining;
     updateUIStatus();
+    
+    if (!ws || ws.readyState !== WebSocket.OPEN) return;
+    
     if (isTraining) {
-        runTrainingLoop();
+        ws.send(JSON.stringify({ type: 'start_training' }));
+    } else {
+        ws.send(JSON.stringify({ type: 'stop_training' }));
     }
 }
 
@@ -195,8 +206,10 @@ function resetModel() {
     statusDiv.textContent = 'Status: Model Reset';
     metricsDiv.textContent = 'Steps: 0 | Loss: N/A';
     
-    // Instant redraw - request a new map from the server with reset weights
-    runTrainingLoop();
+    if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({ type: 'reset' }));
+        updateConfig();
+    }
 }
 
 archInput.addEventListener('blur', resetModel);
@@ -230,7 +243,17 @@ canvas.addEventListener('mousedown', (e) => {
         });
     }
     stateManager.saveData(points);
+    sendDataUpdate();
 });
+
+function sendDataUpdate() {
+    if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({
+            type: 'update_data',
+            data: points
+        }));
+    }
+}
 
 function setClass(cls) {
     currentClass = cls;
@@ -274,15 +297,23 @@ function connect() {
     const wsUrl = `${protocol}//${window.location.host}${path}/ws`;
     
     ws = new WebSocket(wsUrl);
+    ws.binaryType = "arraybuffer";
 
     ws.onopen = () => {
         statusDiv.textContent = 'Status: Connected';
         console.log('Connected to WS');
+        // Sync initial state
+        updateConfig();
+        sendDataUpdate();
     };
 
     ws.onmessage = (event) => {
-        const message = JSON.parse(event.data);
-        handleMessage(message);
+        if (event.data instanceof ArrayBuffer) {
+            handleBinaryMessage(event.data);
+        } else {
+            const message = JSON.parse(event.data);
+            handleMessage(message);
+        }
     };
 
     ws.onclose = () => {
@@ -291,19 +322,61 @@ function connect() {
     };
 }
 
+function handleBinaryMessage(buffer) {
+    const view = new DataView(buffer);
+    const type = view.getUint8(0);
+    
+    if (type === 0x01) { // Map Update
+        const width = view.getUint16(1, true); // Little endian
+        const height = view.getUint16(3, true);
+        
+        const headerSize = 5;
+        const rgbData = new Uint8Array(buffer, headerSize);
+        
+        if (mapCanvas.width !== width || mapCanvas.height !== height) {
+            mapCanvas.width = width;
+            mapCanvas.height = height;
+            mapCtx = mapCanvas.getContext('2d');
+        }
+        
+        const imgData = mapCtx.createImageData(width, height);
+        // data is RGB (3 bytes), imgData is RGBA (4 bytes)
+        const len = rgbData.length;
+        for (let i = 0; i < len / 3; i++) {
+            const pixelIdx = i * 3;
+            const offset = i * 4;
+            imgData.data[offset] = rgbData[pixelIdx];
+            imgData.data[offset+1] = rgbData[pixelIdx+1];
+            imgData.data[offset+2] = rgbData[pixelIdx+2];
+            imgData.data[offset+3] = 255; // Alpha
+        }
+        
+        mapCtx.putImageData(imgData, 0, 0);
+        createImageBitmap(mapCanvas).then(bmp => {
+            mapData = bmp;
+            if (isTraining && currentEpoch % recordingInterval === 0) {
+                recordHistory(bmp, currentEpoch, currentLoss);
+            }
+        });
+    }
+}
+
 function handleMessage(message) {
     if (message.type === 'step_result') {
-        weights = message.model;
-        stateManager.saveWeights(weights);
+        // Asynchronous update from server
+        if (message.model) {
+            weights = message.model;
+            stateManager.saveWeights(weights);
+        }
         
-        currentLoss = message.metrics.loss;
-        currentEpoch++;
+        if (message.metrics) {
+            currentLoss = message.metrics.loss;
+            // Use server step count for accuracy
+            currentEpoch = message.metrics.step || (currentEpoch + 1);
+        }
         
         updateUIStatus();
         
-        if (isTraining) {
-            runTrainingLoop();
-        }
     } else if (message.type === 'map_update') {
         const { width, height, format, data } = message.payload;
         
@@ -422,19 +495,6 @@ historySeekbar.oninput = () => {
         metricsDiv.textContent = `Steps: ${snapshot.epoch} (History) | Loss: ${snapshot.loss.toFixed(4)}`;
     }
 };
-
-function runTrainingLoop() {
-    if (!ws || ws.readyState !== WebSocket.OPEN) return;
-    if (!isTraining && currentEpoch > 0) return; // Allow single step for reset/redraw
-
-    const payload = {
-        type: 'train_step',
-        config: config,
-        model: weights || { weights: [], biases: [] },
-        data: points
-    };
-    ws.send(JSON.stringify(payload));
-}
 
 function render() {
     ctx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);

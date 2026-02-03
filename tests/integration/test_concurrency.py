@@ -15,6 +15,10 @@ class TestConcurrency(AsyncHTTPTestCase): # type: ignore
         c1 = yield websocket_connect(url)
         c2 = yield websocket_connect(url)
 
+        # Consume initial config message
+        yield c1.read_message()
+        yield c2.read_message()
+
         # Config 1: 2->10->2
         payload1 = {
             "type": "train_step",

@@ -35,7 +35,6 @@ Python 3.11+: Follow standard conventions
 ## Recent Changes
 - 009-responsive-layout: Added Python 3.11+, JavaScript (ES6) + Tornado, PyTorch (CPU-only), NumPy, Browser Canvas API
 - 008-artificial-data-generators: Added Python 3.11+, JavaScript (ES6) + Tornado (WebSockets), NumPy (Mathematical distributions), PyTorch (Backend model), Browser Canvas API (Frontend rendering)
-- 007-advanced-training-settings: Added Python 3.11+, JavaScript (ES6) + Tornado (WebSockets), PyTorch (NN Core), NumPy
 
 
 <!-- MANUAL ADDITIONS START -->
