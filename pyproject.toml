@@ -4,17 +4,17 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "nnvisu"
-version = "0.1.0"
+version = "1.0"
 description = "A real-time neural network training visualizer"
 authors = [
-    {name = "Your Name", email = "your.email@example.com"},
+    {name = "Jan Švec", email = "honzas@kky.zcu.cz"},
 ]
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
     "tornado>=6.3",
     "numpy>=1.24",
-    "torch>=2.0"
+    "torch>=2.0" # Use CPU-only version in restricted environments: pip install torch --index-url https://download.pytorch.org/whl/cpu
 ]
 
 [project.optional-dependencies]

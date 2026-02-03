@@ -3,6 +3,7 @@ from typing import Any, Dict, cast
 
 import tornado.websocket
 
+from nnvisu import __version__, __author__
 from nnvisu.logic.model import NeuralNetwork
 from nnvisu.logic.trainer import StatelessTrainer
 from nnvisu.protocol import TrainingPayload, GenerateDataRequest
@@ -20,6 +21,14 @@ class NeuralWebSocket(tornado.websocket.WebSocketHandler): # type: ignore
 
     def open(self) -> None:
         print("WebSocket opened")
+        # Send initial configuration and metadata
+        self.write_message(json.dumps({
+            "type": "config",
+            "payload": {
+                "version": __version__,
+                "author": __author__
+            }
+        }))
 
     def on_message(self, message: str) -> None:
         try:

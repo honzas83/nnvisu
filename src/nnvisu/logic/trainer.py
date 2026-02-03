@@ -36,7 +36,7 @@ class StatelessTrainer:
             return 0.0
 
         # Hyperparameters from config
-        learning_rate = config.get("learningRate", 0.01)
+        learning_rate = config.get("learningRate", 0.001)
         optimizer_name = config.get("optimizer", "adam").lower()
         regularization = config.get("regularization", 0.0)
         batch_size = config.get("batchSize", 0)
@@ -49,8 +49,9 @@ class StatelessTrainer:
             batch = data
 
         # Prepare batch tensors
-        X = torch.tensor([[p['x'], p['y']] for p in batch], dtype=torch.float32)  # noqa: N806
-        y = torch.tensor([p['label'] for p in batch], dtype=torch.long)
+        device = torch.device("cpu")
+        X = torch.tensor([[p['x'], p['y']] for p in batch], dtype=torch.float32, device=device)  # noqa: N806
+        y = torch.tensor([p['label'] for p in batch], dtype=torch.long, device=device)
 
         # Re-initialize optimizer (stateless)
         opt_class = {
@@ -69,7 +70,6 @@ class StatelessTrainer:
         optimizer.step()
 
         return float(loss.item())
-
     def generate_map(self, model: NeuralNetwork, width: int = GRID_WIDTH, height: int = GRID_HEIGHT) -> str:
         """Generate classification map as base64 string (RGB bytes)."""
         model.eval() # Set to eval mode to disable dropout
@@ -80,8 +80,9 @@ class StatelessTrainer:
         xv, yv = np.meshgrid(x, y)
 
         # Flatten and convert to tensor
+        device = torch.device("cpu")
         grid_points = np.stack([xv.flatten(), yv.flatten()], axis=1)
-        X_grid = torch.tensor(grid_points, dtype=torch.float32)  # noqa: N806
+        X_grid = torch.tensor(grid_points, dtype=torch.float32, device=device)  # noqa: N806
 
         # Predict probabilities
         with torch.no_grad():

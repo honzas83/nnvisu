@@ -270,7 +270,8 @@ function updateHistoryUI() {
 
 function connect() {
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const wsUrl = `${protocol}//${window.location.host}/ws`;
+    const path = window.location.pathname.replace(/\/$/, '');
+    const wsUrl = `${protocol}//${window.location.host}${path}/ws`;
     
     ws = new WebSocket(wsUrl);
 
@@ -353,6 +354,16 @@ function handleMessage(message) {
         stateManager.saveData(points);
         // Reset model weights and training state when data changes
         resetModel();
+    } else if (message.type === 'config') {
+        const { version, author } = message.payload;
+        const footerInfo = document.querySelector('.footer-info');
+        if (footerInfo) {
+            footerInfo.innerHTML = `
+                <span class="author">${author}</span>, Department of Cybernetics, University of West Bohemia.
+                <br>
+                Version: ${version} | <a href="https://github.com/honzas83/nnvisu" target="_blank">Project GitHub</a>
+            `;
+        }
     } else if (message.type === 'error') {
         console.error('Server error:', message.message);
         statusDiv.textContent = 'Status: Error';

@@ -34,6 +34,7 @@ class NeuralNetwork(nn.Module): # type: ignore
             
         layers.append(nn.Linear(input_dim, output_dim)) # Output classes (logits)
         self.net = nn.Sequential(*layers)
+        self.to(torch.device("cpu"))
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         return self.net(x)
@@ -54,13 +55,14 @@ class NeuralNetwork(nn.Module): # type: ignore
         weight_list = state.get("weights", [])
         bias_list = state.get("biases", [])
         
+        device = torch.device("cpu")
         linear_idx = 0
         for layer in self.net:
             if isinstance(layer, nn.Linear):
                 if linear_idx < len(weight_list):
-                    layer.weight.data = torch.tensor(weight_list[linear_idx])
+                    layer.weight.data = torch.tensor(weight_list[linear_idx], device=device)
                 if linear_idx < len(bias_list):
-                    layer.bias.data = torch.tensor(bias_list[linear_idx])
+                    layer.bias.data = torch.tensor(bias_list[linear_idx], device=device)
                 linear_idx += 1
 
     def adapt_output_layer(self, new_output_dim: int) -> None:
@@ -73,8 +75,9 @@ class NeuralNetwork(nn.Module): # type: ignore
         if old_output_dim == new_output_dim:
             return
             
+        device = torch.device("cpu")
         in_features = old_layer.in_features
-        new_layer = nn.Linear(in_features, new_output_dim)
+        new_layer = nn.Linear(in_features, new_output_dim).to(device)
         
         # Copy existing weights/biases
         with torch.no_grad():

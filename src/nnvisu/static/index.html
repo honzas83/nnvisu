@@ -8,19 +8,22 @@
 </head>
 <body lang="en-US">
     <div id="app">
-        <header>
-            <h1>nnvisu</h1>
-            <p>Neural Network decision boundary visualization.</p>
-            <div id="how-to" class="how-to">
-                <ol>
-                    <li>Pick a <b>Target class</b> color and click the canvas to add training points.</li>
-                    <li>Alternatively, use <b>Generate data</b> buttons to create complex synthetic datasets with specified number of classes.</li>
-                    <li>Press <b>▶ Train</b> to start the neural network training.</li>
-                    <li>Use the <b>History</b> slider to review previous decision maps.</li>
-                    <li>Adjust <b>Architecture</b> or <b>Advanced Settings</b> to experiment.</li>
-                    <li>Press <b>Reset Model</b> to randomize weights and start over.</li>
-                </ol>
-            </div>
+        <div id="sidebar">
+            <header>
+                <h1>nnvisu</h1>
+                <p>Neural Network decision boundary visualization.</p>
+                <div id="how-to" class="how-to">
+                    <ol>
+                        <li>Pick a <b>Target class</b> color and click the canvas to add training points.</li>
+                        <li>Alternatively, use <b>Generate data</b> buttons to create complex synthetic datasets with specified number of classes.</li>
+                        <li>Press <b>▶ Train</b> to start the neural network training.</li>
+                        <li>Use the <b>History</b> slider to review previous decision maps.</li>
+                        <li>Adjust <b>Architecture</b> or <b>Advanced Settings</b> to experiment.</li>
+                        <li>Press <b>Reset Model</b> to randomize weights and start over.</li>
+                    </ol>
+                </div>
+            </header>
+
             <div id="controls">
                 <!-- Section 1: Training Data -->
                 <div class="control-panel">
@@ -36,7 +39,7 @@
                         <div class="control-group">
                             <button id="btn-clear" class="secondary-btn">Clear Data</button>
                         </div>
-                        <div class="control-group generator-controls" style="width: 100%; border-top: 1px solid #f0f0f0; padding-top: 15px; margin-top: 5px; justify-content: center; gap: 15px; flex-wrap: nowrap;">
+                        <div class="control-group generator-controls" style="width: 100%; border-top: 1px solid #f0f0f0; padding-top: 15px; margin-top: 5px; justify-content: center; gap: 15px; flex-wrap: wrap;">
                             <label style="white-space: nowrap;">Generate data:</label>
                             <div class="control-group" style="gap: 5px;">
                                 <button id="btn-gen-circles" class="gen-btn" title="Concentric Circles">⭕ Circles</button>
@@ -86,73 +89,77 @@
                         </div>
                     </div>
                 </div>
+
+                <details id="advanced-options" class="control-panel">
+                    <summary>Advanced Training Settings</summary>
+                    <div class="panel-content advanced-grid">
+                        <div class="control-group">
+                            <label for="activation-select">Activation:</label>
+                            <div class="input-wrapper">
+                                <select id="activation-select">
+                                    <option value="tanh">Tanh</option>
+                                    <option value="relu">ReLU</option>
+                                    <option value="leaky_relu">Leaky ReLU</option>
+                                    <option value="gelu">GELU</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="control-group">
+                            <label for="optimizer-select">Optimizer:</label>
+                            <div class="input-wrapper">
+                                <select id="optimizer-select">
+                                    <option value="adam">ADAM</option>
+                                    <option value="sgd">SGD</option>
+                                    <option value="rmsprop">RMSProp</option>
+                                </select>
+                            </div>
+                        </div>
+                                            <div class="control-group">
+                                                <label for="lr-input">Learning Rate:</label>
+                                                <div class="input-wrapper">
+                                                    <input type="number" id="lr-input" value="0.001" step="0.001" min="0.0001" lang="en-US">
+                                                </div>
+                                            </div>                        <div class="control-group">
+                            <label for="reg-input">Regularization (L2):</label>
+                            <div class="input-wrapper">
+                                <input type="number" id="reg-input" value="0" step="0.0001" min="0" lang="en-US">
+                            </div>
+                        </div>
+                        <div class="control-group">
+                            <label for="batch-input">Batch Size (0=full):</label>
+                            <div class="input-wrapper">
+                                <input type="number" id="batch-input" value="0" step="1" min="0">
+                            </div>
+                        </div>
+                        <div class="control-group">
+                            <label for="dropout-input">Dropout:</label>
+                            <div class="input-wrapper">
+                                <input type="number" id="dropout-input" value="0" step="0.1" min="0" max="1" lang="en-US">
+                            </div>
+                        </div>
+                        <div class="reset-container">
+                            <button id="btn-reset-advanced-panel" class="secondary-btn btn-reset-advanced">Reset advanced parameters</button>
+                        </div>
+                    </div>
+                </details>
             </div>
-        </header>
-        <main>
-            <canvas id="viz-canvas" width="800" height="800"></canvas>
-            
-            <details id="advanced-options" class="control-panel" style="margin-top: 20px;">
-                <summary>Advanced Training Settings</summary>
-                <div class="panel-content advanced-grid">
-                    <div class="control-group">
-                        <label for="activation-select">Activation:</label>
-                        <div class="input-wrapper">
-                            <select id="activation-select">
-                                <option value="tanh">Tanh</option>
-                                <option value="relu">ReLU</option>
-                                <option value="leaky_relu">Leaky ReLU</option>
-                                <option value="gelu">GELU</option>
-                            </select>
-                        </div>
-                    </div>
-                    <div class="control-group">
-                        <label for="optimizer-select">Optimizer:</label>
-                        <div class="input-wrapper">
-                            <select id="optimizer-select">
-                                <option value="adam">ADAM</option>
-                                <option value="sgd">SGD</option>
-                                <option value="rmsprop">RMSProp</option>
-                            </select>
-                        </div>
-                    </div>
-                    <div class="control-group">
-                        <label for="lr-input">Learning Rate:</label>
-                        <div class="input-wrapper">
-                            <input type="number" id="lr-input" value="0.01" step="0.001" min="0.0001" lang="en-US">
-                        </div>
-                    </div>
-                    <div class="control-group">
-                        <label for="reg-input">Regularization (L2):</label>
-                        <div class="input-wrapper">
-                            <input type="number" id="reg-input" value="0" step="0.0001" min="0" lang="en-US">
-                        </div>
-                    </div>
-                    <div class="control-group">
-                        <label for="batch-input">Batch Size (0=full):</label>
-                        <div class="input-wrapper">
-                            <input type="number" id="batch-input" value="0" step="1" min="0">
-                        </div>
-                    </div>
-                    <div class="control-group">
-                        <label for="dropout-input">Dropout:</label>
-                        <div class="input-wrapper">
-                            <input type="number" id="dropout-input" value="0" step="0.1" min="0" max="1" lang="en-US">
-                        </div>
-                    </div>
-                    <div class="reset-container">
-                        <button id="btn-reset-advanced-panel" class="secondary-btn btn-reset-advanced">Reset advanced parameters</button>
-                    </div>
+
+            <footer>
+                <div class="footer-info">
+                    <span class="author">Jan Švec</span> &lt;honzas@kky.zcu.cz&gt;, Department of Cybernetics, University of West Bohemia.
+                    <br>
+                    <a href="https://github.com/honzas83/nnvisu" target="_blank">Project GitHub</a>
                 </div>
-            </details>
-        </main>
-        <footer>
-            <div class="footer-info">
-                <span class="author">Jan Švec</span> &lt;honzas@kky.zcu.cz&gt;, Department of Cybernetics, University of West Bohemia.
-                <br>
-                <a href="https://github.com/honzas83/nnvisu" target="_blank">Project GitHub</a>
+            </footer>
+        </div>
+
+        <main>
+            <div id="viz-content">
+                <canvas id="viz-canvas" width="800" height="800"></canvas>
             </div>
-        </footer>
+        </main>
     </div>
+
     <script type="module" src="main.js"></script>
 </body>
 </html>

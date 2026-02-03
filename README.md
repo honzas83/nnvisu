@@ -27,20 +27,22 @@ A real-time web application to visualize the training process of a neural networ
 ### Installation
 
 1. Clone the repository.
-2. Navigate to the `backend` directory:
-   ```bash
-   cd backend
-   ```
-3. Install dependencies:
+2. Install dependencies (CPU-only recommended):
    ```bash
    pip install -r requirements.txt
    ```
 
+**Alternative: Install directly from Git**
+To install the CPU-only version directly from GitHub without cloning:
+```bash
+pip install "git+https://github.com/honzas83/nnvisu.git" --extra-index-url https://download.pytorch.org/whl/cpu
+```
+
 ### Running the Application
 
-1. Start the backend server:
+1. Start the server:
    ```bash
-   python src/app.py
+   python -m nnvisu
    ```
 2. Open your browser and navigate to:
    ```
