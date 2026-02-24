@@ -131,7 +131,7 @@ function updateConfig() {
 
 [activationSelect, optimizerSelect, lrInput, regInput, batchInput, dropoutInput].forEach(el => {
     el.addEventListener('change', () => {
-        if (el === activationSelect) {
+        if (el === activationSelect || el === dropoutInput) {
             resetModel();
         } else {
             if (isTraining) {
@@ -185,6 +185,28 @@ function toggleTraining() {
     }
 }
 
+function syncArchitecture() {
+    const val = archInput.value.trim();
+    if (/^\d+(-\d+)*$/.test(val)) {
+        config.architecture = val.split('-').map(Number);
+        stateManager.saveConfig(config);
+    }
+    
+    config.activation = activationSelect.value;
+    config.dropout = parseFloat(dropoutInput.value) || 0;
+
+    if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({
+            type: 'update_architecture',
+            payload: {
+                hidden_layers: config.architecture,
+                activation: config.activation,
+                dropout: config.dropout
+            }
+        }));
+    }
+}
+
 function resetModel() {
     isTraining = false;
     weights = null;
@@ -196,11 +218,7 @@ function resetModel() {
     recordingInterval = 10;
     updateHistoryUI();
     
-    const val = archInput.value.trim();
-    if (/^\d+(-\d+)*$/.test(val)) {
-        config.architecture = val.split('-').map(Number);
-        stateManager.saveConfig(config);
-    }
+    syncArchitecture();
     
     updateUIStatus();
     statusDiv.textContent = 'Status: Model Reset';
@@ -377,6 +395,11 @@ function handleMessage(message) {
         
         updateUIStatus();
         
+    } else if (message.type === 'architecture_synced') {
+        const layers = message.payload.hidden_layers;
+        statusDiv.textContent = `Status: Architecture Synced [${layers.join('-')}]`;
+        console.log('Architecture synced:', layers);
+
     } else if (message.type === 'map_update') {
         const { width, height, format, data } = message.payload;
         

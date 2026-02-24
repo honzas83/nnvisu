@@ -11,7 +11,14 @@ from nnvisu import __version__, __author__
 from nnvisu.logic.model import NeuralNetwork
 from nnvisu.logic.trainer import StatelessTrainer, StatefulTrainer
 from nnvisu.logic.session import TrainingSession
-from nnvisu.protocol import GenerateDataRequest, DataPoint, TrainingPayload
+from nnvisu.protocol import (
+    GenerateDataRequest, DataPoint, TrainingPayload,
+    MSG_TYPE_START_TRAINING, MSG_TYPE_STOP_TRAINING, MSG_TYPE_RESET,
+    MSG_TYPE_UPDATE_CONFIG, MSG_TYPE_GENERATE_DATA, MSG_TYPE_TRAIN_STEP,
+    MSG_TYPE_UPDATE_DATA, MSG_TYPE_UPDATE_ARCHITECTURE, MSG_TYPE_ARCHITECTURE_SYNCED,
+    MSG_TYPE_CONFIG, MSG_TYPE_STEP_RESULT, MSG_TYPE_DATA_GENERATED, MSG_TYPE_ERROR,
+    ArchitectureUpdateRequest
+)
 from nnvisu.logic.generators import (
     generate_circles, generate_moons, generate_blobs,
     generate_anisotropic, generate_varied_variance
@@ -40,7 +47,7 @@ class NeuralWebSocket(tornado.websocket.WebSocketHandler): # type: ignore
         
         # Send initial configuration and metadata
         self.write_message(json.dumps({
-            "type": "config",
+            "type": MSG_TYPE_CONFIG,
             "payload": {
                 "version": __version__,
                 "author": __author__
@@ -83,7 +90,7 @@ class NeuralWebSocket(tornado.websocket.WebSocketHandler): # type: ignore
                 
                 # Send Metrics
                 self.write_message(json.dumps({
-                    "type": "step_result",
+                    "type": MSG_TYPE_STEP_RESULT,
                     "model": model_state,
                     "metrics": {
                         "loss": latest_metric["loss"],
@@ -134,25 +141,27 @@ class NeuralWebSocket(tornado.websocket.WebSocketHandler): # type: ignore
         msg_type = data.get("type")
         logger.info(f"Received message: {msg_type}")
 
-        if msg_type == "start_training":
+        if msg_type == MSG_TYPE_START_TRAINING:
             self.handle_start_training()
-        elif msg_type == "stop_training":
+        elif msg_type == MSG_TYPE_STOP_TRAINING:
             self.handle_stop_training()
-        elif msg_type == "reset":
+        elif msg_type == MSG_TYPE_RESET:
             logger.info("Processing reset command...")
             self.handle_reset()
             logger.info("Reset command processed.")
-        elif msg_type == "update_config":
+        elif msg_type == MSG_TYPE_UPDATE_CONFIG:
             self.handle_update_config(data)
-        elif msg_type == "generate_data":
+        elif msg_type == MSG_TYPE_UPDATE_ARCHITECTURE:
+            self.handle_update_architecture(data)
+        elif msg_type == MSG_TYPE_GENERATE_DATA:
             payload = cast(GenerateDataRequest, data)
             self.handle_generate_data(payload)
-        elif msg_type == "train_step":
+        elif msg_type == MSG_TYPE_TRAIN_STEP:
              # Legacy support or allow client to drive stepping manually?
              # For now, ignore or implement as single step.
              payload = cast(TrainingPayload, data)
              self.handle_train_step(payload)
-        elif msg_type == "update_data":
+        elif msg_type == MSG_TYPE_UPDATE_DATA:
              # Implicit support for data updates
              self.handle_update_data(data)
 
@@ -245,7 +254,7 @@ class NeuralWebSocket(tornado.websocket.WebSocketHandler): # type: ignore
 
         # Response
         response = {
-            "type": "step_result",
+            "type": MSG_TYPE_STEP_RESULT,
             "model": updated_state,
             "metrics": {
                 "loss": loss,
@@ -322,6 +331,72 @@ class NeuralWebSocket(tornado.websocket.WebSocketHandler): # type: ignore
         config = payload if payload else data.get("config", {})
         self.session.update_config(config)
 
+    def handle_update_architecture(self, data: Dict[str, Any]) -> None:
+        """Handle structural changes to the neural network."""
+        payload = data.get("payload", {})
+        hidden_layers = payload.get("hidden_layers")
+        activation = payload.get("activation", "tanh")
+        dropout = payload.get("dropout", 0.0)
+
+        if hidden_layers is None:
+            return
+
+        # T018: Enforce constraints
+        if len(hidden_layers) > 10:
+            hidden_layers = hidden_layers[:10]
+            logger.warning("Capped hidden layers to 10")
+            
+        hidden_layers = [min(100, max(1, h)) for h in hidden_layers]
+
+        # T014: Stop training before structural change to prevent crashes
+        was_active = self.session.training_active
+        if was_active:
+            self.handle_stop_training()
+
+        with self.session.lock:
+            # Update configuration in session
+            self.session.update_config({
+                "architecture": hidden_layers,
+                "activation": activation,
+                "dropout": dropout
+            })
+            
+            # Re-create model from scratch (T007)
+            # We need output_dim from current data
+            existing_data = self.session.data
+            max_label = 0
+            if existing_data:
+                for p in existing_data:
+                    lbl = p.get('label', 0)
+                    if lbl > max_label:
+                        max_label = lbl
+            
+            required_output_dim = max(2, max_label + 1)
+            
+            new_model = NeuralNetwork(
+                hidden_layers=hidden_layers,
+                output_dim=required_output_dim,
+                activation=activation,
+                dropout=dropout
+            )
+            self.session.set_model(new_model)
+            self.total_steps = 0
+            self.session.reset_steps()
+
+        # Notify client that architecture is synced
+        self.write_message(json.dumps({
+            "type": MSG_TYPE_ARCHITECTURE_SYNCED,
+            "payload": {
+                "status": "success",
+                "hidden_layers": hidden_layers
+            }
+        }))
+
+        # If it was active, we could restart, but per requirement Story 3 (A) 
+        # it should automatically stop (which we did) and wait for user to restart.
+        # Actually, User Choice A for Q1 was "Auto-Stop & Reset". 
+        # So we leave it stopped.
+
     def handle_generate_data(self, payload: GenerateDataRequest) -> None:
         dist_type = payload.get("distribution")
         num_classes = payload.get("num_classes", 2)
@@ -340,7 +415,7 @@ class NeuralWebSocket(tornado.websocket.WebSocketHandler): # type: ignore
                 data = generate_varied_variance(n_classes=num_classes)
             else:
                 self.write_message(json.dumps({
-                    "type": "error",
+                    "type": MSG_TYPE_ERROR,
                     "message": f"Unknown distribution type: {dist_type}"
                 }))
                 return
@@ -348,17 +423,27 @@ class NeuralWebSocket(tornado.websocket.WebSocketHandler): # type: ignore
             self._update_data_and_adapt_model(data)
             
             self.write_message(json.dumps({
-                "type": "data_generated",
+                "type": MSG_TYPE_DATA_GENERATED,
                 "data": data
             }))
         except Exception as e:
             self.write_message(json.dumps({
-                "type": "error",
+                "type": MSG_TYPE_ERROR,
                 "message": f"Error generating data: {str(e)}"
             }))
 
     def _init_default_model(self) -> None:
-        model = NeuralNetwork(hidden_layers=[10, 10], output_dim=2)
+        config = self.session.config
+        hidden_layers = config.get("architecture", [10, 10])
+        activation = config.get("activation", "tanh")
+        dropout = config.get("dropout", 0.0)
+        
+        model = NeuralNetwork(
+            hidden_layers=hidden_layers, 
+            output_dim=2, 
+            activation=activation,
+            dropout=dropout
+        )
         self.session.set_model(model)
 
     def on_close(self) -> None:

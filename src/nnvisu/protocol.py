@@ -1,4 +1,19 @@
-from typing import TypedDict, List
+from typing import TypedDict, List, Any
+
+# Message Types
+MSG_TYPE_CONFIG = "config"
+MSG_TYPE_START_TRAINING = "start_training"
+MSG_TYPE_STOP_TRAINING = "stop_training"
+MSG_TYPE_RESET = "reset"
+MSG_TYPE_UPDATE_CONFIG = "update_config"
+MSG_TYPE_UPDATE_DATA = "update_data"
+MSG_TYPE_GENERATE_DATA = "generate_data"
+MSG_TYPE_DATA_GENERATED = "data_generated"
+MSG_TYPE_TRAIN_STEP = "train_step"
+MSG_TYPE_STEP_RESULT = "step_result"
+MSG_TYPE_UPDATE_ARCHITECTURE = "update_architecture"
+MSG_TYPE_ARCHITECTURE_SYNCED = "architecture_synced"
+MSG_TYPE_ERROR = "error"
 
 class LayerWeights(TypedDict):
     weights: List[List[float]]
@@ -41,6 +56,23 @@ class GenerateDataRequest(TypedDict):
 class DataGeneratedResponse(TypedDict):
     type: str
     data: List[DataPoint]
+
+class ArchitectureUpdatePayload(TypedDict):
+    hidden_layers: List[int]
+    activation: str
+    dropout: float
+
+class ArchitectureUpdateRequest(TypedDict):
+    type: str
+    payload: ArchitectureUpdatePayload
+
+class ArchitectureSyncedPayload(TypedDict):
+    status: str
+    hidden_layers: List[int]
+
+class ArchitectureSyncedResponse(TypedDict):
+    type: str
+    payload: ArchitectureSyncedPayload
 
 class ErrorResponse(TypedDict):
     type: str

@@ -33,6 +33,7 @@ cd src [ONLY COMMANDS FOR ACTIVE TECHNOLOGIES][ONLY COMMANDS FOR ACTIVE TECHNOLO
 Python 3.11+: Follow standard conventions
 
 ## Recent Changes
+- 011-fix-arch-sync: Added `localStorage` (Configuration/Data), In-memory (Training History)
 - 009-responsive-layout: Added Python 3.11+, JavaScript (ES6) + Tornado, PyTorch (CPU-only), NumPy, Browser Canvas API
 - 008-artificial-data-generators: Added Python 3.11+, JavaScript (ES6) + Tornado (WebSockets), NumPy (Mathematical distributions), PyTorch (Backend model), Browser Canvas API (Frontend rendering)
 
